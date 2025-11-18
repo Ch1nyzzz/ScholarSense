@@ -4,12 +4,12 @@ import { useStore } from '../store';
 import { extractTextFromPdf } from '../services/pdfService';
 import { analyzePaperWithGemini } from '../services/geminiService';
 import { Paper, PaperStatus } from '../types';
-import { v4 as uuidv4 } from 'uuid'; // You'd normally import this, but I'll generate a random ID manually for this environment
+import { v4 as uuidv4 } from 'uuid'; 
 
 const generateId = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
 export const FileUpload: React.FC = () => {
-  const { addPaper, updatePaperStatus, updatePaperAnalysis, apiKey, toggleSettings } = useStore();
+  const { addPaper, updatePaperStatus, updatePaperAnalysis, apiKey, toggleSettings, language } = useStore();
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -46,7 +46,7 @@ export const FileUpload: React.FC = () => {
       updatePaperStatus(id, PaperStatus.ANALYZING);
 
       // 2. Analyze with Gemini
-      const analysis = await analyzePaperWithGemini(text, apiKey);
+      const analysis = await analyzePaperWithGemini(text, apiKey, language);
       
       // 3. Save Result
       updatePaperAnalysis(id, analysis);
@@ -64,7 +64,7 @@ export const FileUpload: React.FC = () => {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFile(e.dataTransfer.files[0]);
     }
-  }, [apiKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [apiKey, language]); 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -93,7 +93,7 @@ export const FileUpload: React.FC = () => {
         {isProcessing ? (
            <div className="flex flex-col items-center text-apple-blue animate-pulse">
              <Loader2 className="w-8 h-8 animate-spin mb-2" />
-             <span className="text-sm font-medium">Reading Paper...</span>
+             <span className="text-sm font-medium">Reading Paper... ({language === 'en' ? 'EN' : 'ZH'})</span>
            </div>
         ) : (
             <>

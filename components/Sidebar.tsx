@@ -1,11 +1,15 @@
 import React from 'react';
-import { Book, Star, Archive, Settings, Plus } from 'lucide-react';
+import { Book, Star, Archive, Settings, Key, Languages } from 'lucide-react';
 import { useStore } from '../store';
 
 export const Sidebar: React.FC = () => {
-  const { toggleSettings, papers, activePaperId, closeReader } = useStore();
+  const { toggleSettings, papers, activePaperId, closeReader, apiKey, language, setLanguage } = useStore();
 
   const favoriteCount = papers.filter(p => p.isFavorite).length;
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'en' ? 'zh' : 'en');
+  };
 
   return (
     <div className="w-64 h-screen bg-white/80 backdrop-blur-md border-r border-gray-200 flex flex-col shrink-0 fixed md:relative z-10">
@@ -13,7 +17,7 @@ export const Sidebar: React.FC = () => {
         <div className="w-8 h-8 bg-apple-blue rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/30">
             <Book className="w-5 h-5 text-white" />
         </div>
-        <h1 className="font-bold text-lg tracking-tight text-apple-dark">ScholarFeed</h1>
+        <h1 className="font-bold text-lg tracking-tight text-apple-dark">ScholarSense</h1>
       </div>
 
       <nav className="flex-1 px-4 space-y-1 mt-4">
@@ -62,14 +66,34 @@ export const Sidebar: React.FC = () => {
         </div>
       </nav>
 
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 space-y-2 border-t border-gray-200">
+        {/* Language Toggle */}
         <button 
-          onClick={toggleSettings}
+          onClick={toggleLanguage}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-apple-text hover:bg-gray-50 transition-colors"
         >
-          <Settings className="w-4 h-4" />
-          Settings
+          <Languages className="w-4 h-4" />
+          <span>Language: <span className="font-bold text-apple-dark">{language === 'en' ? 'English' : '中文'}</span></span>
         </button>
+
+        {/* Settings / API Key */}
+        {!apiKey ? (
+           <button 
+             onClick={toggleSettings}
+             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors animate-pulse"
+           >
+             <Key className="w-4 h-4" />
+             Set API Key
+           </button>
+        ) : (
+           <button 
+             onClick={toggleSettings}
+             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-apple-text hover:bg-gray-50 transition-colors"
+           >
+             <Settings className="w-4 h-4" />
+             Settings
+           </button>
+        )}
       </div>
     </div>
   );

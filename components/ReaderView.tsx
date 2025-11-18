@@ -6,31 +6,65 @@ import { useStore } from '../store';
 import { ArrowLeft, Share, MessageSquare, Bookmark } from 'lucide-react';
 
 export const ReaderView: React.FC = () => {
-  const { papers, activePaperId, closeReader } = useStore();
+  const { papers, activePaperId, closeReader, language } = useStore();
   const paper = papers.find(p => p.id === activePaperId);
 
   if (!paper || !paper.analysis) return null;
 
   const { analysis } = paper;
 
-  const Section: React.FC<{ title: string; content: string; className?: string }> = ({ title, content, className = "" }) => (
-    <div className={`mb-12 ${className}`}>
-      <h3 className="text-xl font-bold text-apple-dark mb-4 tracking-tight">{title}</h3>
-      <div className="prose prose-lg prose-slate max-w-none text-gray-600 leading-relaxed font-serif">
-        <ReactMarkdown
-            remarkPlugins={[remarkMath]}
-            rehypePlugins={[rehypeKatex]}
-            components={{
-                p: ({node, ...props}) => <p className="mb-4 text-lg leading-8 font-light" {...props} />,
-                ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-4 space-y-2" {...props} />,
-                li: ({node, ...props}) => <li className="text-lg font-light" {...props} />
-            }}
-        >
-            {content}
-        </ReactMarkdown>
+  const headers = {
+    background: language === 'zh' ? "研究背景" : "Research Background",
+    motivation: language === 'zh' ? "研究动机" : "Motivation",
+    conclusion: language === 'zh' ? "研究结论" : "Conclusion",
+    methodology: language === 'zh' ? "数学表示及建模" : "Methodology & Math",
+    implementation: language === 'zh' ? "实验方法与复现" : "Implementation Details",
+    results: language === 'zh' ? "实验结果及结论" : "Evaluation & Results",
+    critique: language === 'zh' ? "犀利锐评" : "Reviewer Critique",
+    oneMoreThing: language === 'zh' ? "One More Thing" : "One More Thing",
+  };
+
+  const Section: React.FC<{ title: string; content: string; className?: string; theme?: 'default' | 'success' | 'warning' }> = ({ 
+    title, 
+    content, 
+    className = "",
+    theme = 'default' 
+  }) => {
+    let bgClass = "";
+    let titleColor = "text-apple-dark";
+    let proseColor = "prose-slate text-gray-600";
+
+    if (theme === 'success') {
+        bgClass = "bg-green-50/50 border border-green-100 rounded-3xl p-8";
+        titleColor = "text-green-900";
+        proseColor = "prose-sm text-green-800";
+    } else if (theme === 'warning') {
+        bgClass = "bg-amber-50/50 border border-amber-100 rounded-3xl p-8";
+        titleColor = "text-amber-900";
+        proseColor = "prose-sm text-amber-800";
+    }
+
+    return (
+      <div className={`mb-12 ${bgClass} ${className}`}>
+        <h3 className={`text-xl font-bold ${titleColor} mb-4 tracking-tight`}>{title}</h3>
+        <div className={`prose ${proseColor} max-w-none leading-relaxed font-serif`}>
+          <ReactMarkdown
+              remarkPlugins={[remarkMath]}
+              rehypePlugins={[rehypeKatex]}
+              components={{
+                  p: ({node, ...props}) => <p className="mb-4 text-lg leading-8 font-light" {...props} />,
+                  ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-4 space-y-2" {...props} />,
+                  li: ({node, ...props}) => <li className="text-lg font-light" {...props} />,
+                  // Ensure inline math doesn't break lines awkwardly if possible
+                  span: ({node, ...props}) => <span className="inline-block" {...props} /> 
+              }}
+          >
+              {content}
+          </ReactMarkdown>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="absolute inset-0 z-20 bg-white overflow-auto">
@@ -61,7 +95,7 @@ export const ReaderView: React.FC = () => {
         {/* Header Section */}
         <div className="mb-16 text-center">
            <span className="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold tracking-wide uppercase mb-4">
-             AI Analysis
+             AI Analysis ({language.toUpperCase()})
            </span>
            <h1 className="text-4xl md:text-5xl font-extrabold text-apple-dark mb-6 leading-tight">
              {analysis.title}
@@ -74,40 +108,30 @@ export const ReaderView: React.FC = () => {
         </div>
 
         {/* Content Blocks */}
-        <Section title="Background & Context" content={analysis.summary_background} />
+        <Section title={headers.background} content={analysis.background} />
         
         <div className="bg-gray-50 -mx-6 px-6 py-8 mb-12 rounded-3xl">
-            <Section title="Core Motivation" content={analysis.motivation} className="mb-0" />
+            <Section title={headers.motivation} content={analysis.motivation} className="mb-0" />
         </div>
 
-        <Section title="Methodology & Math" content={analysis.core_method_math_latex} />
+        <Section title={headers.conclusion} content={analysis.research_conclusion} />
+
+        <Section title={headers.methodology} content={analysis.methodology_math} />
         
-        <Section title="Experiments" content={analysis.experiments_setup} />
+        <Section title={headers.implementation} content={analysis.implementation_details} />
         
-        <div className="grid md:grid-cols-2 gap-8 mb-12">
-            <div className="bg-green-50/50 p-6 rounded-3xl border border-green-100">
-                 <h3 className="text-lg font-bold text-green-900 mb-3">Results</h3>
-                 <div className="prose prose-sm text-green-800">
-                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                        {analysis.results_metrics}
-                    </ReactMarkdown>
-                 </div>
-            </div>
-            <div className="bg-amber-50/50 p-6 rounded-3xl border border-amber-100">
-                 <h3 className="text-lg font-bold text-amber-900 mb-3">Critique</h3>
-                 <div className="prose prose-sm text-amber-800">
-                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                        {analysis.reviewer_critique}
-                    </ReactMarkdown>
-                 </div>
-            </div>
+        <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+            <Section title={headers.results} content={analysis.evaluation_results} theme="success" />
+            <Section title={headers.critique} content={analysis.reviewer_critique} theme="warning" />
         </div>
 
         <div className="p-8 bg-apple-dark rounded-3xl text-white shadow-2xl shadow-black/20">
-             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">One More Thing</h3>
-             <p className="text-xl md:text-2xl font-medium leading-relaxed">
-                "{analysis.one_more_thing}"
-             </p>
+             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">{headers.oneMoreThing}</h3>
+             <div className="prose prose-invert prose-lg">
+                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                    {analysis.one_more_thing}
+                </ReactMarkdown>
+             </div>
         </div>
 
         <div className="h-24"></div>

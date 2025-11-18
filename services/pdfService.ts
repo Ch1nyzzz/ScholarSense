@@ -1,13 +1,19 @@
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Initialize worker.
-// In a production environment, you would bundle the worker.
-// For this setup, we point to a CDN to ensure it runs without complex build config.
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Ensure specific version is used to match worker
+const PDFJS_VERSION = '5.4.394';
+
+// Use esm.sh for the worker as it reliably serves ES modules with correct headers
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://esm.sh/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.mjs`;
 
 export const extractTextFromPdf = async (file: File): Promise<string> => {
   const arrayBuffer = await file.arrayBuffer();
-  const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+  
+  const loadingTask = pdfjsLib.getDocument({ 
+    data: arrayBuffer,
+    cMapUrl: `https://esm.sh/pdfjs-dist@${PDFJS_VERSION}/cmaps/`,
+    cMapPacked: true,
+  });
   
   try {
     const pdf = await loadingTask.promise;
@@ -16,6 +22,8 @@ export const extractTextFromPdf = async (file: File): Promise<string> => {
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
+      
+      // Join items with space.
       const pageText = textContent.items
         .map((item: any) => item.str)
         .join(' ');
@@ -26,6 +34,6 @@ export const extractTextFromPdf = async (file: File): Promise<string> => {
     return fullText;
   } catch (error) {
     console.error("Error parsing PDF:", error);
-    throw new Error("Failed to extract text from PDF.");
+    throw new Error("Failed to extract text from PDF. " + (error instanceof Error ? error.message : String(error)));
   }
 };

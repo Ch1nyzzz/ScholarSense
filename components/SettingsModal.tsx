@@ -61,7 +61,7 @@ export const SettingsModal: React.FC = () => {
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">
                     {apiKey 
-                        ? "ScholarFeed is connected to Gemini." 
+                        ? "ScholarSense is connected to Gemini." 
                         : "Please enter your API key to enable AI analysis features."}
                 </p>
              </div>

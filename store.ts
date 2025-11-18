@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Paper, PaperStatus, PaperAnalysis, ViewMode } from './types';
+import { Paper, PaperStatus, PaperAnalysis, ViewMode, Language } from './types';
 
 interface AppState {
   apiKey: string;
@@ -8,10 +8,12 @@ interface AppState {
   activePaperId: string | null;
   viewMode: ViewMode;
   isSettingsOpen: boolean;
+  language: Language;
   
   // Actions
   setApiKey: (key: string) => void;
   toggleSettings: () => void;
+  setLanguage: (lang: Language) => void;
   addPaper: (paper: Paper) => void;
   updatePaperStatus: (id: string, status: PaperStatus, error?: string) => void;
   updatePaperAnalysis: (id: string, analysis: PaperAnalysis) => void;
@@ -29,9 +31,11 @@ export const useStore = create<AppState>()(
       activePaperId: null,
       viewMode: 'dashboard',
       isSettingsOpen: false,
+      language: 'zh', // Default to Chinese as requested by the detailed prompt context
 
       setApiKey: (key) => set({ apiKey: key }),
       toggleSettings: () => set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
+      setLanguage: (lang) => set({ language: lang }),
       
       addPaper: (paper) => set((state) => ({ 
         papers: [paper, ...state.papers] 
@@ -69,7 +73,8 @@ export const useStore = create<AppState>()(
       name: 'scholarfeed-storage',
       partialize: (state) => ({ 
         apiKey: state.apiKey, 
-        papers: state.papers 
+        papers: state.papers,
+        language: state.language
       }),
     }
   )
