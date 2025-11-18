@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { UploadCloud, Loader2, FileText } from 'lucide-react';
 import { useStore } from '../store';
@@ -33,6 +34,8 @@ export const FileUpload: React.FC = () => {
       status: PaperStatus.EXTRACTING,
       analysis: null,
       tags: [],
+      collectionIds: [], // Initialize
+      userNotes: '',     // Initialize
       isFavorite: false,
       isRead: false
     };

@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { PaperAnalysis, Language } from "../types";
 
@@ -18,11 +19,16 @@ const analysisSchema: Schema = {
     evaluation_results: { type: Type.STRING, description: "Baseline comparisons, specific metrics, and insights." },
     reviewer_critique: { type: Type.STRING, description: "Critical review: pros, cons, and future improvements." },
     one_more_thing: { type: Type.STRING, description: "A unique, surprising, or valuable additional insight." },
+    suggested_tags: { 
+        type: Type.ARRAY, 
+        items: { type: Type.STRING }, 
+        description: "List of 3-5 short, relevant semantic tags (e.g., 'LLM', 'Vision', 'RL')." 
+    }
   },
   required: [
     "title", "authors", "background", "motivation", "research_conclusion", 
     "methodology_math", "implementation_details", "evaluation_results", 
-    "reviewer_critique", "one_more_thing"
+    "reviewer_critique", "one_more_thing", "suggested_tags"
   ],
 };
 
@@ -31,12 +37,12 @@ export const analyzePaperWithGemini = async (text: string, apiKey: string, langu
 
   const ai = new GoogleGenAI({ apiKey });
   
-  // Truncate text if excessively long (Gemini 1.5 Flash has 1M window, but let's be safe at 500k chars)
+  // Truncate text if excessively long
   const MAX_CHARS = 500000; 
   const processedText = text.length > MAX_CHARS ? text.substring(0, MAX_CHARS) + "...(truncated)" : text;
 
   const languageInstruction = language === 'zh' 
-    ? "Use CHINESE (Simplified) for the analysis content (except for specific technical terms, formulas, or proper nouns)."
+    ? "Use CHINESE (Simplified) for the analysis content (except for specific technical terms, formulas, or proper nouns). However, keep tags in English if they are standard technical terms."
     : "Use ENGLISH for the analysis content.";
 
   const prompt = `
@@ -58,6 +64,7 @@ export const analyzePaperWithGemini = async (text: string, apiKey: string, langu
     6. **evaluation_results**: Compare baselines. What effect was achieved? What insights were revealed?
     7. **reviewer_critique**: Act as a sharp reviewer. Critique the work. Strengths, weaknesses, and improvement directions.
     8. **one_more_thing**: Free form. Something important/interesting you want to share.
+    9. **suggested_tags**: Generate 3-5 precise tags for categorization.
 
     IMPORTANT: 
     - Return ONLY valid JSON matching the schema.

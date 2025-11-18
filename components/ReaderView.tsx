@@ -1,17 +1,40 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { useStore } from '../store';
-import { ArrowLeft, Share, MessageSquare, Bookmark } from 'lucide-react';
+import { ArrowLeft, Share, MessageSquare, Bookmark, X, Save } from 'lucide-react';
 
 export const ReaderView: React.FC = () => {
-  const { papers, activePaperId, closeReader, language } = useStore();
+  const { papers, activePaperId, closeReader, language, toggleFavorite, updatePaperNotes } = useStore();
   const paper = papers.find(p => p.id === activePaperId);
+  
+  // State for Notes Panel
+  const [showNotes, setShowNotes] = useState(false);
+  const [localNotes, setLocalNotes] = useState('');
+  // Initialize notes from store when panel opens or paper changes
+  React.useEffect(() => {
+    if (paper) setLocalNotes(paper.userNotes || '');
+  }, [paper]);
 
   if (!paper || !paper.analysis) return null;
 
   const { analysis } = paper;
+
+  const handleShare = () => {
+    const text = `${analysis.title}\n\n${analysis.research_conclusion}\n\nAnalyzed by ScholarSense`;
+    navigator.clipboard.writeText(text).then(() => {
+        alert(language === 'zh' ? "已复制摘要到剪贴板" : "Summary copied to clipboard");
+    });
+  };
+
+  const handleSaveNotes = () => {
+    if (activePaperId) {
+        updatePaperNotes(activePaperId, localNotes);
+        // Optional: Visual feedback
+    }
+  };
 
   const headers = {
     background: language === 'zh' ? "研究背景" : "Research Background",
@@ -55,7 +78,6 @@ export const ReaderView: React.FC = () => {
                   p: ({node, ...props}) => <p className="mb-4 text-lg leading-8 font-light" {...props} />,
                   ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-4 space-y-2" {...props} />,
                   li: ({node, ...props}) => <li className="text-lg font-light" {...props} />,
-                  // Ensure inline math doesn't break lines awkwardly if possible
                   span: ({node, ...props}) => <span className="inline-block" {...props} /> 
               }}
           >
@@ -67,74 +89,113 @@ export const ReaderView: React.FC = () => {
   };
 
   return (
-    <div className="absolute inset-0 z-20 bg-white overflow-auto">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-        <button 
-            onClick={closeReader}
-            className="flex items-center gap-2 text-apple-blue font-medium hover:opacity-80 transition-opacity"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Back to Library</span>
-        </button>
-        
-        <div className="flex items-center gap-3">
-           <button className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
-               <MessageSquare className="w-5 h-5" />
-           </button>
-           <button className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
-               <Bookmark className="w-5 h-5" />
-           </button>
-           <button className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
-               <Share className="w-5 h-5" />
-           </button>
+    <div className="absolute inset-0 z-20 bg-white overflow-hidden flex">
+      <div className="flex-1 overflow-auto relative">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+            <button 
+                onClick={closeReader}
+                className="flex items-center gap-2 text-apple-blue font-medium hover:opacity-80 transition-opacity"
+            >
+            <ArrowLeft className="w-5 h-5" />
+            <span>Back to Library</span>
+            </button>
+            
+            <div className="flex items-center gap-3">
+            <button 
+                onClick={() => setShowNotes(!showNotes)}
+                className={`p-2 hover:bg-gray-100 rounded-full transition-colors ${showNotes ? 'text-apple-blue bg-blue-50' : 'text-gray-500'}`}
+                title="Notes"
+            >
+                <MessageSquare className="w-5 h-5" />
+            </button>
+            <button 
+                onClick={() => toggleFavorite(paper.id)}
+                className={`p-2 hover:bg-gray-100 rounded-full transition-colors ${paper.isFavorite ? 'text-yellow-500' : 'text-gray-500'}`}
+                title="Favorite"
+            >
+                <Bookmark className={`w-5 h-5 ${paper.isFavorite ? 'fill-current' : ''}`} />
+            </button>
+            <button 
+                onClick={handleShare}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+                title="Copy Summary"
+            >
+                <Share className="w-5 h-5" />
+            </button>
+            </div>
+        </div>
+
+        <div className="max-w-3xl mx-auto px-6 py-12 animate-fadeIn">
+            {/* Header Section */}
+            <div className="mb-16 text-center">
+            <span className="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold tracking-wide uppercase mb-4">
+                AI Analysis ({language.toUpperCase()})
+            </span>
+            <h1 className="text-4xl md:text-5xl font-extrabold text-apple-dark mb-6 leading-tight">
+                {analysis.title}
+            </h1>
+            <div className="flex flex-wrap justify-center gap-2 text-gray-500 text-lg">
+                {analysis.authors.map((author, i) => (
+                    <span key={i} className="bg-gray-50 px-3 py-1 rounded-md">{author}</span>
+                ))}
+            </div>
+            </div>
+
+            {/* Content Blocks */}
+            <Section title={headers.background} content={analysis.background} />
+            
+            <div className="bg-gray-50 -mx-6 px-6 py-8 mb-12 rounded-3xl">
+                <Section title={headers.motivation} content={analysis.motivation} className="mb-0" />
+            </div>
+
+            <Section title={headers.conclusion} content={analysis.research_conclusion} />
+
+            <Section title={headers.methodology} content={analysis.methodology_math} />
+            
+            <Section title={headers.implementation} content={analysis.implementation_details} />
+            
+            <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+                <Section title={headers.results} content={analysis.evaluation_results} theme="success" />
+                <Section title={headers.critique} content={analysis.reviewer_critique} theme="warning" />
+            </div>
+
+            <div className="p-8 bg-apple-dark rounded-3xl text-white shadow-2xl shadow-black/20">
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">{headers.oneMoreThing}</h3>
+                <div className="prose prose-invert prose-lg">
+                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                        {analysis.one_more_thing}
+                    </ReactMarkdown>
+                </div>
+            </div>
+
+            <div className="h-24"></div>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 py-12 animate-fadeIn">
-        {/* Header Section */}
-        <div className="mb-16 text-center">
-           <span className="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold tracking-wide uppercase mb-4">
-             AI Analysis ({language.toUpperCase()})
-           </span>
-           <h1 className="text-4xl md:text-5xl font-extrabold text-apple-dark mb-6 leading-tight">
-             {analysis.title}
-           </h1>
-           <div className="flex flex-wrap justify-center gap-2 text-gray-500 text-lg">
-             {analysis.authors.map((author, i) => (
-                <span key={i} className="bg-gray-50 px-3 py-1 rounded-md">{author}</span>
-             ))}
-           </div>
-        </div>
-
-        {/* Content Blocks */}
-        <Section title={headers.background} content={analysis.background} />
-        
-        <div className="bg-gray-50 -mx-6 px-6 py-8 mb-12 rounded-3xl">
-            <Section title={headers.motivation} content={analysis.motivation} className="mb-0" />
-        </div>
-
-        <Section title={headers.conclusion} content={analysis.research_conclusion} />
-
-        <Section title={headers.methodology} content={analysis.methodology_math} />
-        
-        <Section title={headers.implementation} content={analysis.implementation_details} />
-        
-        <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-            <Section title={headers.results} content={analysis.evaluation_results} theme="success" />
-            <Section title={headers.critique} content={analysis.reviewer_critique} theme="warning" />
-        </div>
-
-        <div className="p-8 bg-apple-dark rounded-3xl text-white shadow-2xl shadow-black/20">
-             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">{headers.oneMoreThing}</h3>
-             <div className="prose prose-invert prose-lg">
-                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                    {analysis.one_more_thing}
-                </ReactMarkdown>
-             </div>
-        </div>
-
-        <div className="h-24"></div>
+      {/* Notes Side Panel */}
+      <div className={`border-l border-gray-200 bg-gray-50 flex flex-col transition-all duration-300 ${showNotes ? 'w-96 translate-x-0' : 'w-0 translate-x-full overflow-hidden'}`}>
+         <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-white">
+            <h3 className="font-bold text-apple-dark">Notes</h3>
+            <button onClick={() => setShowNotes(false)} className="p-1 hover:bg-gray-100 rounded-full">
+                <X className="w-4 h-4 text-gray-500" />
+            </button>
+         </div>
+         <div className="flex-1 p-4 overflow-y-auto">
+            <textarea 
+                value={localNotes}
+                onChange={(e) => setLocalNotes(e.target.value)}
+                onBlur={handleSaveNotes}
+                placeholder="Type your personal notes here..."
+                className="w-full h-full min-h-[300px] bg-transparent resize-none outline-none text-sm text-gray-700 leading-relaxed"
+            />
+         </div>
+         <div className="p-4 border-t border-gray-200 bg-white text-xs text-gray-400 flex justify-between items-center">
+            <span>Markdown supported</span>
+            <span className="flex items-center gap-1 text-green-600">
+                <Save className="w-3 h-3" /> Auto-saving
+            </span>
+         </div>
       </div>
     </div>
   );
