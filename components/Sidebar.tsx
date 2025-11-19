@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Book, Star, Archive, Settings, Key, Languages, Folder, Plus, Tag, Hash, GripVertical } from 'lucide-react';
+import { Book, Star, Archive, Settings, Key, Languages, Folder, Plus, Tag, Hash, GripVertical, Cloud, AlertCircle } from 'lucide-react';
 import { useStore } from '../store';
 import { translations } from '../i18n';
 
@@ -16,6 +16,7 @@ export const Sidebar: React.FC = () => {
     activeFilter,
     setFilter,
     createCollection,
+    cloudConfig
   } = useStore();
 
   const t = translations[language];
@@ -220,24 +221,33 @@ export const Sidebar: React.FC = () => {
           <span>{t.languageLabel}: <span className="font-bold text-apple-dark">{language === 'en' ? 'English' : '中文'}</span></span>
         </button>
 
-        {/* Settings / API Key */}
-        {!apiKey ? (
-           <button 
-             onClick={toggleSettings}
-             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors animate-pulse"
-           >
-             <Key className="w-4 h-4" />
-             {t.setApiKey}
-           </button>
-        ) : (
-           <button 
-             onClick={toggleSettings}
-             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-apple-text hover:bg-white transition-colors border border-transparent hover:border-gray-200 hover:shadow-sm"
-           >
-             <Settings className="w-4 h-4" />
-             {t.settings}
-           </button>
-        )}
+        {/* Settings / Sync Status */}
+        <button 
+            onClick={toggleSettings}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors border hover:shadow-sm ${
+                !apiKey ? 'text-amber-700 bg-amber-50 border-amber-200 animate-pulse' : 
+                'text-apple-text hover:bg-white border-transparent hover:border-gray-200'
+            }`}
+        >
+            {cloudConfig.isEnabled ? (
+                <Cloud className="w-4 h-4 text-apple-blue" />
+            ) : !apiKey ? (
+                <Key className="w-4 h-4" />
+            ) : (
+                <Settings className="w-4 h-4" />
+            )}
+            
+            <span className="flex-1 text-left">
+                {!apiKey ? t.setApiKey : t.settings}
+            </span>
+
+            {cloudConfig.isEnabled && (
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+            )}
+        </button>
       </div>
     </div>
   );

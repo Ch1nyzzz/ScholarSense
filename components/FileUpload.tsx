@@ -9,6 +9,16 @@ import { translations } from '../i18n';
 
 const generateId = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
+// Utility to convert File to Base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
+
 export const FileUpload: React.FC = () => {
   const { 
     addPaper, 
@@ -43,34 +53,37 @@ export const FileUpload: React.FC = () => {
     // Process each file
     pdfFiles.forEach(async (file) => {
         const id = generateId();
-        const pdfUrl = URL.createObjectURL(file); // Create a temporary URL for viewing
-
-        const newPaper: Paper = {
-            id,
-            originalTitle: file.name,
-            dateAdded: Date.now(),
-            status: PaperStatus.EXTRACTING,
-            analysis: null,
-            tags: [],
-            collectionIds: [], 
-            userNotes: '',     
-            isFavorite: false,
-            isRead: false,
-            pdfUrl: pdfUrl 
-        };
-
-        addPaper(newPaper);
-
+        
         try {
-            // 1. Extract Text
-            const text = await extractTextFromPdf(file);
-            updatePaperStatus(id, PaperStatus.ANALYZING);
+          // 0. Convert to Base64 for persistence
+          const base64Data = await fileToBase64(file);
+          
+          const newPaper: Paper = {
+              id,
+              originalTitle: file.name,
+              dateAdded: Date.now(),
+              status: PaperStatus.EXTRACTING,
+              analysis: null,
+              tags: [],
+              collectionIds: [], 
+              userNotes: '',     
+              isFavorite: false,
+              isRead: false,
+              pdfData: base64Data, // Store persistent data
+              pdfUrl: undefined // Runtime only
+          };
 
-            // 2. Analyze with Gemini (Using analysisLanguage from store)
-            const analysis = await analyzePaperWithGemini(text, apiKey, analysisLanguage);
-            
-            // 3. Save Result
-            updatePaperAnalysis(id, analysis);
+          addPaper(newPaper);
+
+          // 1. Extract Text
+          const text = await extractTextFromPdf(file);
+          updatePaperStatus(id, PaperStatus.ANALYZING);
+
+          // 2. Analyze with Gemini (Using analysisLanguage from store)
+          const analysis = await analyzePaperWithGemini(text, apiKey, analysisLanguage);
+          
+          // 3. Save Result
+          updatePaperAnalysis(id, analysis);
         } catch (error: any) {
             console.error(error);
             updatePaperStatus(id, PaperStatus.ERROR, error.message || "Unknown error occurred");

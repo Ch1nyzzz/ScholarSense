@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -16,11 +16,35 @@ export const ReaderView: React.FC = () => {
   const [showNotes, setShowNotes] = useState(false);
   const [showPdf, setShowPdf] = useState(false);
   const [localNotes, setLocalNotes] = useState('');
+  const [pdfDisplayUrl, setPdfDisplayUrl] = useState<string | null>(null);
   
   // Initialize notes from store when panel opens or paper changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (paper) setLocalNotes(paper.userNotes || '');
   }, [paper]);
+
+  // Effect to create object URL from stored Base64 Data
+  useEffect(() => {
+      if (paper?.pdfData) {
+          fetch(paper.pdfData)
+            .then(res => res.blob())
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                setPdfDisplayUrl(url);
+                return () => URL.revokeObjectURL(url);
+            })
+            .catch(err => console.error("Error converting PDF data:", err));
+      } else if (paper?.pdfUrl) {
+          // Fallback for legacy legacy session data (should generally not happen with persistence change)
+          setPdfDisplayUrl(paper.pdfUrl);
+      }
+      
+      return () => {
+          if (pdfDisplayUrl && pdfDisplayUrl.startsWith('blob:')) {
+              URL.revokeObjectURL(pdfDisplayUrl);
+          }
+      };
+  }, [paper?.id, paper?.pdfData]);
 
   if (!paper || !paper.analysis) return null;
 
@@ -126,9 +150,9 @@ export const ReaderView: React.FC = () => {
                 </button>
                 
                 <div className="flex items-center gap-2 sm:gap-3">
-                {paper.pdfUrl && (
+                {pdfDisplayUrl && (
                     <button
-                        onClick={() => window.open(paper.pdfUrl, '_blank')}
+                        onClick={() => window.open(pdfDisplayUrl!, '_blank')}
                         className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
                         title={t.openNewTab}
                     >
@@ -223,9 +247,9 @@ export const ReaderView: React.FC = () => {
           {/* PDF Column (Split View) */}
           {showPdf && (
               <div className="w-1/2 h-full bg-gray-100 flex flex-col animate-in slide-in-from-right-4 duration-300 border-l border-gray-200">
-                  {paper.pdfUrl ? (
+                  {pdfDisplayUrl ? (
                       <object
-                        data={paper.pdfUrl}
+                        data={pdfDisplayUrl}
                         type="application/pdf"
                         className="w-full h-full"
                       >
@@ -233,7 +257,7 @@ export const ReaderView: React.FC = () => {
                             <FileText className="w-12 h-12 mb-4 opacity-50" />
                             <p className="mb-2 font-medium">{t.cantDisplay}</p>
                             <a 
-                                href={paper.pdfUrl} 
+                                href={pdfDisplayUrl} 
                                 target="_blank" 
                                 rel="noreferrer"
                                 className="text-apple-blue underline hover:text-blue-700 text-sm"

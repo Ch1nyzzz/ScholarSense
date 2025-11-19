@@ -29,7 +29,8 @@ export interface Paper {
   status: PaperStatus;
   analysis: PaperAnalysis | null;
   rawText?: string;
-  pdfUrl?: string; // Blob URL for viewing original
+  pdfData?: string; // Base64 string of the PDF file for persistence
+  pdfUrl?: string; // Temporary Blob URL for viewing (runtime only)
   tags: string[];
   collectionIds: string[];
   userNotes: string;
@@ -51,4 +52,11 @@ export type FilterType = 'all' | 'favorites' | 'archived' | 'collection' | 'tag'
 export interface FilterState {
   type: FilterType;
   id?: string; // collectionId or tagName
+}
+
+export interface CloudConfig {
+  supabaseUrl: string;
+  supabaseKey: string;
+  lastSync?: number;
+  isEnabled: boolean;
 }

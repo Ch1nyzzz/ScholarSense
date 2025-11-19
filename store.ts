@@ -1,8 +1,23 @@
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { Paper, PaperStatus, PaperAnalysis, ViewMode, Language, Collection, FilterState } from './types';
+import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
+import { Paper, PaperStatus, PaperAnalysis, ViewMode, Language, Collection, FilterState, CloudConfig } from './types';
 import { v4 as uuidv4 } from 'uuid';
+import { get, set, del } from 'idb-keyval';
+import { syncToCloud, pullFromCloud, resetSupabaseClient, getSupabaseClient } from './services/supabase';
+
+// Custom Storage Adapter using IndexedDB
+const idbStorage: StateStorage = {
+  getItem: async (name: string): Promise<string | null> => {
+    return (await get(name)) || null;
+  },
+  setItem: async (name: string, value: string): Promise<void> => {
+    await set(name, value);
+  },
+  removeItem: async (name: string): Promise<void> => {
+    await del(name);
+  },
+};
 
 interface AppState {
   apiKey: string;
@@ -12,14 +27,24 @@ interface AppState {
   viewMode: ViewMode;
   activeFilter: FilterState;
   isSettingsOpen: boolean;
-  language: Language;        // UI Language
-  analysisLanguage: Language; // AI Analysis Output Language
+  language: Language;
+  analysisLanguage: Language;
+  
+  // Cloud State
+  cloudConfig: CloudConfig;
+  isSyncing: boolean;
+  lastCloudSync?: number;
   
   // Actions
   setApiKey: (key: string) => void;
   toggleSettings: () => void;
   setLanguage: (lang: Language) => void;
   setAnalysisLanguage: (lang: Language) => void;
+  
+  // Cloud Actions
+  setCloudConfig: (config: Partial<CloudConfig>) => void;
+  startCloudSync: () => Promise<void>;
+  restoreFromCloud: () => Promise<void>;
   
   // Paper Actions
   addPaper: (paper: Paper) => void;
@@ -41,11 +66,14 @@ interface AppState {
   deleteCollection: (id: string) => void;
   addPaperToCollection: (paperId: string, collectionId: string) => void;
   removePaperFromCollection: (paperId: string, collectionId: string) => void;
+
+  // Data Management
+  importData: (data: Partial<AppState>) => void;
 }
 
 export const useStore = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       apiKey: '',
       papers: [],
       collections: [],
@@ -55,11 +83,76 @@ export const useStore = create<AppState>()(
       isSettingsOpen: false,
       language: 'zh',
       analysisLanguage: 'zh',
+      
+      cloudConfig: {
+        supabaseUrl: '',
+        supabaseKey: '',
+        isEnabled: false
+      },
+      isSyncing: false,
 
       setApiKey: (key) => set({ apiKey: key }),
       toggleSettings: () => set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
       setLanguage: (lang) => set({ language: lang }),
       setAnalysisLanguage: (lang) => set({ analysisLanguage: lang }),
+
+      setCloudConfig: (config) => {
+        set((state) => {
+            const newConfig = { ...state.cloudConfig, ...config };
+            if (newConfig.supabaseUrl !== state.cloudConfig.supabaseUrl || newConfig.supabaseKey !== state.cloudConfig.supabaseKey) {
+                resetSupabaseClient();
+            }
+            return { cloudConfig: newConfig };
+        });
+      },
+
+      startCloudSync: async () => {
+          const state = get();
+          if (!state.cloudConfig.isEnabled) return;
+
+          set({ isSyncing: true });
+          try {
+              const backupData = {
+                  papers: state.papers,
+                  collections: state.collections,
+                  updatedAt: Date.now(),
+                  deviceId: navigator.userAgent
+              };
+              const timestamp = await syncToCloud(state.cloudConfig, backupData);
+              set({ lastCloudSync: timestamp });
+              // alert(state.language === 'zh' ? '云端同步成功' : 'Cloud sync successful');
+          } catch (error: any) {
+              console.error('Sync error:', error);
+              alert(`Sync Failed: ${error.message}`);
+          } finally {
+              set({ isSyncing: false });
+          }
+      },
+
+      restoreFromCloud: async () => {
+          const state = get();
+          if (!state.cloudConfig.isEnabled) return;
+
+          set({ isSyncing: true });
+          try {
+              const data = await pullFromCloud(state.cloudConfig);
+              if (data) {
+                  set({ 
+                      papers: data.papers,
+                      collections: data.collections,
+                      lastCloudSync: data.updatedAt
+                  });
+                  alert(state.language === 'zh' ? '从云端恢复成功' : 'Restored from cloud successfully');
+              } else {
+                  alert(state.language === 'zh' ? '云端暂无数据' : 'No data found in cloud');
+              }
+          } catch (error: any) {
+              console.error('Restore error:', error);
+              alert(`Restore Failed: ${error.message}`);
+          } finally {
+              set({ isSyncing: false });
+          }
+      },
       
       addPaper: (paper) => set((state) => ({ 
         papers: [paper, ...state.papers] 
@@ -77,7 +170,7 @@ export const useStore = create<AppState>()(
             ...p, 
             analysis, 
             status: PaperStatus.COMPLETED,
-            tags: [...(p.tags || []), ...(analysis.suggested_tags || [])] // Merge tags instead of replace
+            tags: [...(p.tags || []), ...(analysis.suggested_tags || [])]
           } : p
         )
       })),
@@ -127,7 +220,6 @@ export const useStore = create<AppState>()(
 
       deleteCollection: (id) => set((state) => ({
         collections: state.collections.filter(c => c.id !== id),
-        // Remove this collection ID from all papers
         papers: state.papers.map(p => ({
           ...p,
           collectionIds: p.collectionIds ? p.collectionIds.filter(cid => cid !== id) : []
@@ -151,16 +243,26 @@ export const useStore = create<AppState>()(
           if (p.id !== paperId) return p;
           return { ...p, collectionIds: (p.collectionIds || []).filter(id => id !== collectionId) };
         })
+      })),
+
+      importData: (data) => set((state) => ({
+        ...state,
+        papers: data.papers || state.papers,
+        collections: data.collections || state.collections,
+        apiKey: data.apiKey || state.apiKey,
+        cloudConfig: data.cloudConfig || state.cloudConfig
       }))
     }),
     {
-      name: 'scholarfeed-storage',
+      name: 'scholarfeed-storage-v2',
+      storage: createJSONStorage(() => idbStorage),
       partialize: (state) => ({ 
         apiKey: state.apiKey, 
         papers: state.papers,
         collections: state.collections,
         language: state.language,
-        analysisLanguage: state.analysisLanguage
+        analysisLanguage: state.analysisLanguage,
+        cloudConfig: state.cloudConfig // Persist cloud config
       }),
     }
   )

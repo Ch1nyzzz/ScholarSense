@@ -2,8 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#F5F5F7" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>ScholarSense</title>
+    <link rel="manifest" href="/manifest.json" />
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
     <script>
@@ -55,12 +59,25 @@
     "pdfjs-dist": "https://aistudiocdn.com/pdfjs-dist@^5.4.394",
     "react-markdown": "https://aistudiocdn.com/react-markdown@^10.1.0",
     "rehype-katex": "https://aistudiocdn.com/rehype-katex@^7.0.1",
-    "remark-math": "https://aistudiocdn.com/remark-math@^6.0.0"
+    "remark-math": "https://aistudiocdn.com/remark-math@^6.0.0",
+    "idb-keyval": "https://unpkg.com/idb-keyval@6.2.1/dist/index.js",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.7"
   }
 }
 </script>
 </head>
   <body class="bg-apple-gray text-apple-dark antialiased overflow-hidden">
     <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('SW registered: ', registration);
+          }).catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+        });
+      }
+    </script>
   </body>
 </html>
