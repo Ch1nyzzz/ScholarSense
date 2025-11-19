@@ -4,19 +4,28 @@ import { Book, Star, Archive, Settings, Key, Languages, Folder, Plus, Tag, Hash,
 import { useStore } from '../store';
 import { translations } from '../i18n';
 
+const Logo = () => (
+  <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-apple-dark">
+    <path d="M9 11V29" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+    <path d="M9 11C9 11 14 5 22 5C30 5 28 12 24 15C20 18 9 20 9 20C9 20 5 24 9 30C13 36 28 35 28 35" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M28 14V35" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+  </svg>
+);
+
 export const Sidebar: React.FC = () => {
   const { 
     toggleSettings, 
     papers, 
     activePaperId, 
-    apiKey, 
+    aiConfig, 
     language, 
     setLanguage,
     collections,
     activeFilter,
     setFilter,
     createCollection,
-    cloudConfig
+    cloudConfig,
+    cloudSyncError
   } = useStore();
 
   const t = translations[language];
@@ -33,6 +42,9 @@ export const Sidebar: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const favoriteCount = papers.filter(p => p.isFavorite).length;
+
+  // Check if the ACTIVE provider has a key set
+  const hasActiveKey = !!aiConfig.keys[aiConfig.activeProvider];
 
   // Focus input when creating starts
   useEffect(() => {
@@ -82,8 +94,8 @@ export const Sidebar: React.FC = () => {
   return (
     <div className="w-64 h-screen bg-white/80 backdrop-blur-md border-r border-gray-200 flex flex-col shrink-0 fixed md:relative z-10">
       <div className="p-6 flex items-center gap-3">
-        <div className="w-8 h-8 bg-apple-blue rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/30">
-            <Book className="w-5 h-5 text-white" />
+        <div className="flex items-center justify-center">
+            <Logo />
         </div>
         <h1 className="font-bold text-lg tracking-tight text-apple-dark">ScholarSense</h1>
       </div>
@@ -224,27 +236,29 @@ export const Sidebar: React.FC = () => {
         {/* Settings / Sync Status */}
         <button 
             onClick={toggleSettings}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors border hover:shadow-sm ${
-                !apiKey ? 'text-amber-700 bg-amber-50 border-amber-200 animate-pulse' : 
-                'text-apple-text hover:bg-white border-transparent hover:border-gray-200'
-            }`}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-apple-text hover:bg-white transition-colors border border-transparent hover:border-gray-200 hover:shadow-sm"
         >
-            {cloudConfig.isEnabled ? (
-                <Cloud className="w-4 h-4 text-apple-blue" />
-            ) : !apiKey ? (
-                <Key className="w-4 h-4" />
-            ) : (
-                <Settings className="w-4 h-4" />
-            )}
+            <Settings className={`w-4 h-4 ${!hasActiveKey ? 'text-amber-500' : ''}`} />
             
             <span className="flex-1 text-left">
-                {!apiKey ? t.setApiKey : t.settings}
+                {t.settings}
             </span>
 
-            {cloudConfig.isEnabled && (
+            {cloudConfig.isEnabled ? (
                 <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  {cloudSyncError ? (
+                     <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                  ) : (
+                     <>
+                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                       <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                     </>
+                  )}
+                </span>
+            ) : !hasActiveKey && (
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                 </span>
             )}
         </button>

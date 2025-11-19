@@ -4,11 +4,12 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { useStore } from '../store';
-import { ArrowLeft, Share, MessageSquare, Bookmark, X, Save, Eye, EyeOff, FileText, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Share, MessageSquare, Bookmark, X, Save, Eye, EyeOff, FileText, ExternalLink, Cloud, Link as LinkIcon } from 'lucide-react';
 import { translations } from '../i18n';
+import { getPdfUrlFromStorage } from '../services/supabase';
 
 export const ReaderView: React.FC = () => {
-  const { papers, activePaperId, closeReader, language, toggleFavorite, updatePaperNotes } = useStore();
+  const { papers, activePaperId, closeReader, language, toggleFavorite, updatePaperNotes, cloudConfig } = useStore();
   const paper = papers.find(p => p.id === activePaperId);
   const t = translations[language];
   
@@ -23,28 +24,53 @@ export const ReaderView: React.FC = () => {
     if (paper) setLocalNotes(paper.userNotes || '');
   }, [paper]);
 
-  // Effect to create object URL from stored Base64 Data
+  // Effect to resolve PDF URL (Local Cache -> Cloud Storage -> Source URL)
   useEffect(() => {
-      if (paper?.pdfData) {
-          fetch(paper.pdfData)
-            .then(res => res.blob())
-            .then(blob => {
-                const url = URL.createObjectURL(blob);
-                setPdfDisplayUrl(url);
-                return () => URL.revokeObjectURL(url);
-            })
-            .catch(err => console.error("Error converting PDF data:", err));
-      } else if (paper?.pdfUrl) {
-          // Fallback for legacy legacy session data (should generally not happen with persistence change)
-          setPdfDisplayUrl(paper.pdfUrl);
-      }
-      
-      return () => {
-          if (pdfDisplayUrl && pdfDisplayUrl.startsWith('blob:')) {
-              URL.revokeObjectURL(pdfDisplayUrl);
+      let activeUrl = '';
+      let isBlob = false;
+
+      const loadPdf = async () => {
+          if (!paper) return;
+
+          // 1. Priority: Local Cache (Fastest, but might not exist if synced from cloud)
+          if (paper.pdfData) {
+              try {
+                  const res = await fetch(paper.pdfData);
+                  const blob = await res.blob();
+                  activeUrl = URL.createObjectURL(blob);
+                  isBlob = true;
+                  setPdfDisplayUrl(activeUrl);
+                  return;
+              } catch (e) {
+                  console.warn("Failed to load local PDF data", e);
+              }
+          }
+
+          // 2. Secondary: Cloud Storage (If we have a path and cloud is on)
+          if (paper.storagePath && cloudConfig.isEnabled) {
+             const url = await getPdfUrlFromStorage(cloudConfig, paper.storagePath);
+             if (url) {
+                 setPdfDisplayUrl(url);
+                 return;
+             }
+          }
+
+          // 3. Fallback: Original Source URL (Arxiv, etc)
+          // This is efficient for public URLs as we don't store the file.
+          if (paper.sourceUrl) {
+              setPdfDisplayUrl(paper.sourceUrl);
+              return;
           }
       };
-  }, [paper?.id, paper?.pdfData]);
+
+      loadPdf();
+      
+      return () => {
+          if (isBlob && activeUrl) {
+              URL.revokeObjectURL(activeUrl);
+          }
+      };
+  }, [paper, cloudConfig]);
 
   if (!paper || !paper.analysis) return null;
 
@@ -113,14 +139,14 @@ export const ReaderView: React.FC = () => {
     return (
       <div className={`mb-12 ${bgClass} ${className}`}>
         <h3 className={`text-xl font-bold ${titleColor} mb-4 tracking-tight`}>{title}</h3>
-        <div className={`prose ${proseColor} max-w-none leading-relaxed font-serif`}>
+        <div className={`prose ${proseColor} max-w-none leading-relaxed font-sans`}>
           <ReactMarkdown
               remarkPlugins={[remarkMath]}
               rehypePlugins={[rehypeKatex]}
               components={{
-                  p: ({node, ...props}) => <p className="mb-4 text-lg leading-8 font-light" {...props} />,
+                  p: ({node, ...props}) => <p className="mb-4 text-lg leading-8 font-normal" {...props} />,
                   ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-4 space-y-2" {...props} />,
-                  li: ({node, ...props}) => <li className="text-lg font-light" {...props} />,
+                  li: ({node, ...props}) => <li className="text-lg font-normal" {...props} />,
                   span: ({node, ...props}) => <span className="inline-block" {...props} /> 
               }}
           >
@@ -199,9 +225,21 @@ export const ReaderView: React.FC = () => {
                 <div className="max-w-3xl mx-auto px-6 py-12 animate-fadeIn">
                     {/* Header Section */}
                     <div className="mb-16 text-center">
-                    <span className="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold tracking-wide uppercase mb-4">
-                        {t.aiAnalysis} ({language.toUpperCase()})
-                    </span>
+                    <div className="flex justify-center gap-2 mb-4">
+                        <span className="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold tracking-wide uppercase">
+                            {t.aiAnalysis} ({language.toUpperCase()})
+                        </span>
+                        {paper.storagePath && (
+                             <span className="inline-block px-3 py-1 rounded-full bg-green-50 text-green-600 text-xs font-bold tracking-wide uppercase flex items-center gap-1">
+                                <Cloud className="w-3 h-3" /> Cloud
+                             </span>
+                        )}
+                        {paper.sourceUrl && (
+                             <span className="inline-block px-3 py-1 rounded-full bg-purple-50 text-purple-600 text-xs font-bold tracking-wide uppercase flex items-center gap-1">
+                                <LinkIcon className="w-3 h-3" /> Web
+                             </span>
+                        )}
+                    </div>
                     <h1 className="text-3xl md:text-4xl font-extrabold text-apple-dark mb-6 leading-tight">
                         {analysis.title}
                     </h1>
@@ -248,10 +286,10 @@ export const ReaderView: React.FC = () => {
           {showPdf && (
               <div className="w-1/2 h-full bg-gray-100 flex flex-col animate-in slide-in-from-right-4 duration-300 border-l border-gray-200">
                   {pdfDisplayUrl ? (
-                      <object
-                        data={pdfDisplayUrl}
-                        type="application/pdf"
+                      <iframe
+                        src={pdfDisplayUrl}
                         className="w-full h-full"
+                        title="PDF Viewer"
                       >
                         <div className="flex flex-col items-center justify-center h-full p-8 text-center text-gray-500">
                             <FileText className="w-12 h-12 mb-4 opacity-50" />
@@ -265,7 +303,7 @@ export const ReaderView: React.FC = () => {
                                 {t.clickToView}
                             </a>
                         </div>
-                      </object>
+                      </iframe>
                   ) : (
                       <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-8 text-center">
                           <FileText className="w-12 h-12 mb-4 opacity-50" />

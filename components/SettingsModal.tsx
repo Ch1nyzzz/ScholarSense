@@ -1,39 +1,85 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Key, CheckCircle, AlertCircle, Download, Upload, HardDrive, Cloud, RefreshCw, LogIn } from 'lucide-react';
+
+import React, { useState, useEffect } from 'react';
+import { X, Key, Cloud, FolderDown, Database, Info, HelpCircle, Copy, Check, Cpu, Globe, Zap, Server, Edit, Brain, Rocket } from 'lucide-react';
 import { useStore } from '../store';
 import { translations } from '../i18n';
 import { getSupabaseClient } from '../services/supabase';
+import { AVAILABLE_MODELS, AiProvider } from '../types';
 
 export const SettingsModal: React.FC = () => {
   const { 
     isSettingsOpen, toggleSettings, 
-    apiKey, setApiKey, 
-    language, papers, collections, importData,
+    aiConfig, setAiConfig, updateAiKey,
+    language, papers, collections,
     cloudConfig, setCloudConfig,
-    startCloudSync, restoreFromCloud, isSyncing, lastCloudSync
+    refreshLibrary, isSyncing, lastCloudSync, cloudSyncError
   } = useStore();
 
-  const [inputKey, setInputKey] = useState('');
+  // Local state for inputs (to avoid syncing on every keystroke)
+  const [localKeys, setLocalKeys] = useState(aiConfig.keys);
+  const [activeTab, setActiveTab] = useState<AiProvider>('gemini');
+  const [customModelId, setCustomModelId] = useState('');
+  const [isCustomModel, setIsCustomModel] = useState(false);
+  
+  // Supabase / Auth State
   const [inputSupabaseUrl, setInputSupabaseUrl] = useState('');
   const [inputSupabaseKey, setInputSupabaseKey] = useState('');
   const [authUser, setAuthUser] = useState<any>(null);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [authLoading, setAuthLoading] = useState(false);
+  const [showSqlHelp, setShowSqlHelp] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const t = translations[language];
 
   useEffect(() => {
     if (isSettingsOpen) {
-        setInputKey(apiKey);
+        setLocalKeys(aiConfig.keys);
+        setActiveTab(aiConfig.activeProvider);
         setInputSupabaseUrl(cloudConfig.supabaseUrl);
         setInputSupabaseKey(cloudConfig.supabaseKey);
+        
+        // Check if current model is custom
+        const knownModels = AVAILABLE_MODELS[aiConfig.activeProvider].map(m => m.modelId);
+        const isUnknown = !knownModels.includes(aiConfig.activeModel);
+        setIsCustomModel(isUnknown);
+        if (isUnknown) {
+            setCustomModelId(aiConfig.activeModel);
+        } else {
+            setCustomModelId('');
+        }
+
         checkUser();
     }
-  }, [apiKey, cloudConfig, isSettingsOpen]);
+  }, [isSettingsOpen]);
+
+  // Auto-expand SQL help if there is a table error
+  useEffect(() => {
+      const err = cloudSyncError?.toLowerCase() || '';
+      if (err.includes('table') || err.includes('schema') || err.includes('database setup')) {
+          setShowSqlHelp(true);
+      }
+  }, [cloudSyncError]);
+
+  // When tab changes, reset model to first available if currently using custom from another provider
+  useEffect(() => {
+      if (isSettingsOpen) {
+        const defaultModel = AVAILABLE_MODELS[activeTab][0].modelId;
+        // We don't setAiConfig here immediately, we wait for save.
+        // But we should update the UI state to reflect what would happen if they saved now, 
+        // or just show the currently saved config if it matches the tab.
+        if (aiConfig.activeProvider === activeTab) {
+            const knownModels = AVAILABLE_MODELS[activeTab].map(m => m.modelId);
+            const isUnknown = !knownModels.includes(aiConfig.activeModel);
+            setIsCustomModel(isUnknown);
+            setCustomModelId(isUnknown ? aiConfig.activeModel : '');
+        } else {
+            setIsCustomModel(false);
+            setCustomModelId('');
+        }
+      }
+  }, [activeTab]);
 
   const checkUser = async () => {
     const client = getSupabaseClient(cloudConfig);
@@ -47,142 +93,216 @@ export const SettingsModal: React.FC = () => {
 
   if (!isSettingsOpen) return null;
 
+  const normalizeUrl = (url: string) => {
+      let clean = url.trim();
+      if (!clean.includes('.') && !clean.includes('://') && /^[a-z0-9-]{10,30}$/i.test(clean)) {
+          return `https://${clean}.supabase.co`;
+      }
+      if (clean && !clean.startsWith('http')) {
+          return `https://${clean}`;
+      }
+      return clean;
+  };
+
   const handleSave = () => {
-    setApiKey(inputKey);
+    // Save Keys
+    Object.entries(localKeys).forEach(([provider, key]) => {
+        updateAiKey(provider as AiProvider, key);
+    });
+
+    // Determine Active Model
+    let finalModel = aiConfig.activeModel;
     
-    // Only update cloud config if changed to avoid unnecessary client resets
-    if (inputSupabaseUrl !== cloudConfig.supabaseUrl || inputSupabaseKey !== cloudConfig.supabaseKey) {
+    // If we switched providers, pick the default or the custom one
+    if (activeTab !== aiConfig.activeProvider) {
+        finalModel = isCustomModel && customModelId ? customModelId : AVAILABLE_MODELS[activeTab][0].modelId;
+    } else {
+        // Same provider, check if we changed model
+        if (isCustomModel && customModelId) {
+            finalModel = customModelId;
+        } 
+        // If not custom, it's already handled by the select onChange
+    }
+
+    // Save Active Provider & Model
+    setAiConfig({ 
+        activeProvider: activeTab,
+        activeModel: finalModel
+    });
+
+    // Save Cloud Config
+    const finalUrl = normalizeUrl(inputSupabaseUrl);
+    const finalKey = inputSupabaseKey.trim();
+
+    if (finalUrl !== cloudConfig.supabaseUrl || finalKey !== cloudConfig.supabaseKey) {
         setCloudConfig({
-            supabaseUrl: inputSupabaseUrl,
-            supabaseKey: inputSupabaseKey,
-            isEnabled: !!(inputSupabaseUrl && inputSupabaseKey)
+            supabaseUrl: finalUrl,
+            supabaseKey: finalKey,
+            isEnabled: !!(finalUrl && finalKey)
         });
     }
 
     toggleSettings();
   };
 
-  const handleAuth = async () => {
-    setAuthLoading(true);
-    try {
-        // Temporarily create a config object to get the client immediately
-        const tempConfig = { ...cloudConfig, supabaseUrl: inputSupabaseUrl, supabaseKey: inputSupabaseKey, isEnabled: true };
-        const client = getSupabaseClient(tempConfig);
-        
-        if (!client) {
-            alert("Please enter valid Supabase URL and Key first");
-            return;
-        }
-
-        let error;
-        if (authMode === 'signup') {
-            const res = await client.auth.signUp({ email: authEmail, password: authPassword });
-            error = res.error;
-            if (!error) alert(language === 'zh' ? "注册成功！请检查邮箱验证。" : "Signup successful! Please check email for verification.");
-        } else {
-            const res = await client.auth.signInWithPassword({ email: authEmail, password: authPassword });
-            error = res.error;
-            if (!error) {
-                setAuthUser(res.data.user);
-                // Ensure config is saved in store if login successful
-                setCloudConfig({
-                    supabaseUrl: inputSupabaseUrl,
-                    supabaseKey: inputSupabaseKey,
-                    isEnabled: true
-                });
-            }
-        }
-
-        if (error) alert(error.message);
-    } catch (e: any) {
-        alert(e.message);
-    } finally {
-        setAuthLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    const client = getSupabaseClient(cloudConfig);
-    if (client) {
-        await client.auth.signOut();
-        setAuthUser(null);
-    }
-  };
-
-  const handleExport = () => {
-    const data = {
-      apiKey,
-      papers,
-      collections,
-      cloudConfig,
-      language,
-      exportedAt: Date.now()
-    };
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `scholarsense-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const json = JSON.parse(event.target?.result as string);
-        if (confirm(language === 'zh' ? '这将覆盖您当前的资料库。确定要继续吗？' : 'This will overwrite your current library. Are you sure?')) {
-           importData(json);
-           alert(language === 'zh' ? '导入成功！' : 'Import successful!');
-           toggleSettings();
-        }
-      } catch (err) {
-        alert(language === 'zh' ? '文件格式错误' : 'Invalid JSON file');
+  const handleModelSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const val = e.target.value;
+      if (val === 'custom_input') {
+          setIsCustomModel(true);
+          setCustomModelId(''); // Reset so they can type
+      } else {
+          setIsCustomModel(false);
+          setAiConfig({ activeModel: val });
       }
-    };
-    reader.readAsText(file);
-    // Reset input
-    if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  const handleAuth = async (mode: 'login' | 'signup') => {
+     if (!authEmail || !authPassword) return alert("Missing email/password");
+     setAuthLoading(true);
+     try {
+         const client = getSupabaseClient({ ...cloudConfig, supabaseUrl: normalizeUrl(inputSupabaseUrl), supabaseKey: inputSupabaseKey, isEnabled: true });
+         if (!client) throw new Error("Invalid Config");
+         if (mode === 'signup') {
+             const { data, error } = await client.auth.signUp({ email: authEmail, password: authPassword });
+             if (error) throw error;
+             if (data.session) setAuthUser(data.user);
+             else alert("Check email for confirmation");
+         } else {
+             const { data, error } = await client.auth.signInWithPassword({ email: authEmail, password: authPassword });
+             if (error) throw error;
+             setAuthUser(data.user);
+         }
+     } catch (e: any) {
+         alert(e.message);
+     } finally {
+         setAuthLoading(false);
+     }
+  };
+
+  const renderProviderTab = (id: AiProvider, name: string, icon: React.ReactNode) => (
+    <button
+        onClick={() => setActiveTab(id)}
+        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
+            activeTab === id 
+            ? 'bg-apple-dark text-white border-apple-dark shadow-md' 
+            : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+        }`}
+    >
+        {icon}
+        {name}
+    </button>
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-center relative shrink-0">
           <h2 className="text-lg font-bold text-apple-dark">{t.settingsTitle}</h2>
-          <button onClick={toggleSettings} className="p-1 rounded-full hover:bg-gray-100 transition-colors">
+          <button onClick={toggleSettings} className="absolute right-4 p-1 rounded-full hover:bg-gray-100 transition-colors">
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
 
-        <div className="p-6 space-y-6 overflow-y-auto flex-1">
-          {/* API Key Section */}
+        <div className="p-6 space-y-8 overflow-y-auto flex-1">
+          
+          {/* AI Provider Section */}
           <section>
-            <label className="block text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
-              <Key className="w-4 h-4 text-gray-500" />
-              {t.apiKeyLabel}
+            <label className="block text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-apple-blue" />
+              {language === 'zh' ? 'AI 模型服务商' : 'AI Provider & Model'}
             </label>
-            <input
-              type="password"
-              value={inputKey}
-              onChange={(e) => setInputKey(e.target.value)}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-apple-blue focus:border-transparent outline-none"
-              placeholder="AIzaSy..."
-            />
-            <div className="mt-2 flex items-center gap-2 text-xs">
-                 {inputKey ? <CheckCircle className="w-3 h-3 text-green-500" /> : <AlertCircle className="w-3 h-3 text-amber-500" />}
-                 <span className="text-gray-500">{inputKey ? t.systemReady : t.neededMsg}</span>
+
+            <div className="flex flex-wrap gap-2 mb-4">
+                {renderProviderTab('gemini', 'Gemini', <Zap className="w-3 h-3" />)}
+                {renderProviderTab('siliconflow', 'SiliconCloud', <Rocket className="w-3 h-3" />)}
+                {renderProviderTab('openai', 'OpenAI', <Globe className="w-3 h-3" />)}
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 animate-in fade-in">
+                {/* API Key Input */}
+                <div className="mb-4">
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                        API Key
+                    </label>
+                    <div className="relative">
+                        <Key className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                        <input
+                            type="password"
+                            value={localKeys[activeTab]}
+                            onChange={(e) => setLocalKeys({ ...localKeys, [activeTab]: e.target.value })}
+                            className="block w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-apple-blue outline-none bg-white"
+                            placeholder={`sk-... (${activeTab} API Key)`}
+                        />
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1 ml-1">
+                        {activeTab === 'gemini' && "Get key at aistudio.google.com"}
+                        {activeTab === 'siliconflow' && "Get key at cloud.siliconflow.cn (Supports DeepSeek, Qwen, GLM, etc.)"}
+                        {activeTab === 'openai' && "OpenAI Platform or Compatible Proxy"}
+                    </p>
+                </div>
+
+                {/* Model Selector */}
+                <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                        {language === 'zh' ? '选择模型' : 'Select Model'}
+                    </label>
+                    <div className="space-y-2">
+                        <select
+                            value={isCustomModel ? 'custom_input' : aiConfig.activeModel}
+                            onChange={handleModelSelectChange}
+                            className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-apple-blue outline-none bg-white"
+                        >
+                            {AVAILABLE_MODELS[activeTab].map((m) => (
+                                <option key={m.modelId} value={m.modelId}>
+                                    {m.name} ({m.modelId})
+                                </option>
+                            ))}
+                            <option value="custom_input" className="font-semibold text-apple-blue">
+                                {language === 'zh' ? '+ 自定义模型 ID' : '+ Custom Model ID'}
+                            </option>
+                        </select>
+
+                        {isCustomModel && (
+                            <div className="relative animate-in fade-in slide-in-from-top-1">
+                                <Edit className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                                <input 
+                                    type="text" 
+                                    value={customModelId}
+                                    onChange={(e) => setCustomModelId(e.target.value)}
+                                    placeholder="e.g. gemini-2.0-pro-exp-02-05"
+                                    className="block w-full pl-9 pr-3 py-2 border border-apple-blue rounded-lg text-sm focus:ring-2 focus:ring-apple-blue outline-none bg-white shadow-sm"
+                                />
+                                <p className="text-[10px] text-gray-500 mt-1 ml-1">
+                                    {language === 'zh' ? '请输入准确的模型 ID' : 'Enter the exact Model ID from the provider'}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Optional Base URL for OpenAI & SiliconFlow */}
+                {(activeTab === 'openai' || activeTab === 'siliconflow') && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                            Proxy Base URL (Optional)
+                        </label>
+                        <div className="relative">
+                            <Server className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                            <input
+                                type="text"
+                                value={aiConfig.baseUrls?.[activeTab] || ''}
+                                onChange={(e) => setAiConfig({ 
+                                    baseUrls: { 
+                                        ...aiConfig.baseUrls, 
+                                        [activeTab]: e.target.value 
+                                    } 
+                                })}
+                                className="block w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-apple-blue outline-none bg-white"
+                                placeholder={activeTab === 'siliconflow' ? 'https://api.siliconflow.cn/v1' : 'https://api.openai.com/v1'}
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
           </section>
 
@@ -190,139 +310,60 @@ export const SettingsModal: React.FC = () => {
 
           {/* Cloud Sync Section */}
           <section>
-            <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <Cloud className="w-4 h-4 text-apple-blue" />
-              {language === 'zh' ? '云端同步 (Supabase)' : 'Cloud Sync (Supabase)'}
-            </label>
-            
-            <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100 space-y-3">
-                {!authUser ? (
-                    <>
-                        <div className="text-xs text-gray-600 mb-2">
-                            {language === 'zh' ? '配置 Supabase 以启用多端同步功能。' : 'Configure Supabase to enable cross-device sync.'}
-                            <a href="https://supabase.com" target="_blank" className="text-apple-blue underline ml-1">Get Free Project</a>
-                        </div>
-                        <input
-                            type="text"
-                            value={inputSupabaseUrl}
-                            onChange={(e) => setInputSupabaseUrl(e.target.value)}
-                            className="block w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-apple-blue outline-none"
-                            placeholder="Project URL (https://xyz.supabase.co)"
-                        />
-                        <input
-                            type="password"
-                            value={inputSupabaseKey}
-                            onChange={(e) => setInputSupabaseKey(e.target.value)}
-                            className="block w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-apple-blue outline-none"
-                            placeholder="Anon Public Key"
-                        />
-
-                        {(inputSupabaseUrl && inputSupabaseKey) && (
-                            <div className="pt-2 border-t border-blue-100 mt-2">
-                                <div className="flex gap-2 mb-2">
-                                    <input 
-                                        type="email" 
-                                        placeholder="Email"
-                                        className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs"
-                                        value={authEmail}
-                                        onChange={e => setAuthEmail(e.target.value)}
-                                    />
-                                    <input 
-                                        type="password" 
-                                        placeholder="Password"
-                                        className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs"
-                                        value={authPassword}
-                                        onChange={e => setAuthPassword(e.target.value)}
-                                    />
-                                </div>
-                                <div className="flex gap-2">
-                                    <button 
-                                        onClick={() => { setAuthMode('login'); handleAuth(); }}
-                                        disabled={authLoading}
-                                        className="flex-1 py-1.5 bg-apple-blue text-white text-xs rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50"
-                                    >
-                                        {authLoading ? '...' : 'Log In'}
-                                    </button>
-                                    <button 
-                                        onClick={() => { setAuthMode('signup'); handleAuth(); }}
-                                        disabled={authLoading}
-                                        className="flex-1 py-1.5 bg-white border border-gray-300 text-gray-600 text-xs rounded-lg font-medium hover:bg-gray-50 disabled:opacity-50"
-                                    >
-                                        Sign Up
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-sm font-medium text-green-700">
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                {authUser.email}
-                            </div>
-                            <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-red-500">Log Out</button>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-2">
-                            <button 
-                                onClick={startCloudSync}
-                                disabled={isSyncing}
-                                className="flex items-center justify-center gap-2 py-2 bg-white border border-green-200 text-green-700 rounded-lg text-xs font-medium hover:bg-green-50 transition-colors"
-                            >
-                                <Upload className={`w-3 h-3 ${isSyncing ? 'animate-bounce' : ''}`} />
-                                {language === 'zh' ? '上传同步' : 'Push to Cloud'}
-                            </button>
-                            <button 
-                                onClick={restoreFromCloud}
-                                disabled={isSyncing}
-                                className="flex items-center justify-center gap-2 py-2 bg-white border border-blue-200 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-50 transition-colors"
-                            >
-                                <Download className={`w-3 h-3 ${isSyncing ? 'animate-bounce' : ''}`} />
-                                {language === 'zh' ? '下载恢复' : 'Pull from Cloud'}
-                            </button>
-                        </div>
-                        {lastCloudSync && (
-                            <p className="text-[10px] text-center text-gray-400">
-                                Last Sync: {new Date(lastCloudSync).toLocaleString()}
-                            </p>
-                        )}
-                    </div>
-                )}
+            <div className="flex items-center justify-between mb-3">
+                <label className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                  <Cloud className="w-4 h-4 text-apple-blue" />
+                  {language === 'zh' ? '云端同步 (Supabase)' : 'Cloud Sync (Supabase)'}
+                </label>
             </div>
-          </section>
-
-          <hr className="border-gray-100" />
-          
-          {/* Local Data Management */}
-          <section>
-            <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                <HardDrive className="w-4 h-4 text-gray-500" />
-                {language === 'zh' ? '本地备份' : 'Local Backup'}
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-                <button 
-                    onClick={handleExport}
-                    className="flex flex-col items-center justify-center p-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors group"
-                >
-                    <Download className="w-5 h-5 text-gray-500 mb-1 group-hover:text-apple-dark transition-colors" />
-                    <span className="text-xs font-medium text-gray-600">{language === 'zh' ? '导出文件' : 'Export JSON'}</span>
-                </button>
-
-                <button 
-                    onClick={handleImportClick}
-                    className="flex flex-col items-center justify-center p-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors group"
-                >
-                    <Upload className="w-5 h-5 text-gray-500 mb-1 group-hover:text-apple-dark transition-colors" />
-                    <span className="text-xs font-medium text-gray-600">{language === 'zh' ? '导入文件' : 'Import JSON'}</span>
-                </button>
-                <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    accept=".json" 
-                    onChange={handleFileChange}
-                />
+            <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                 {!authUser ? (
+                     <div className="space-y-2">
+                        <input 
+                            className="w-full px-3 py-2 text-sm border rounded-lg" 
+                            placeholder="Supabase URL"
+                            value={inputSupabaseUrl}
+                            onChange={e => setInputSupabaseUrl(e.target.value)}
+                        />
+                        <input 
+                            type="password"
+                            className="w-full px-3 py-2 text-sm border rounded-lg" 
+                            placeholder="Supabase Anon Key"
+                            value={inputSupabaseKey}
+                            onChange={e => setInputSupabaseKey(e.target.value)}
+                        />
+                         <div className="flex gap-2 mt-2">
+                             <input 
+                                className="flex-1 px-3 py-2 text-sm border rounded-lg"
+                                placeholder="Email"
+                                value={authEmail}
+                                onChange={e => setAuthEmail(e.target.value)}
+                             />
+                             <input 
+                                type="password"
+                                className="flex-1 px-3 py-2 text-sm border rounded-lg"
+                                placeholder="Password"
+                                value={authPassword}
+                                onChange={e => setAuthPassword(e.target.value)}
+                             />
+                         </div>
+                         <button 
+                            onClick={() => handleAuth('login')}
+                            className="w-full bg-apple-blue text-white py-2 rounded-lg text-sm mt-2"
+                            disabled={authLoading}
+                         >
+                             {authLoading ? 'Loading...' : 'Login / Connect'}
+                         </button>
+                     </div>
+                 ) : (
+                     <div className="flex justify-between items-center">
+                         <span className="text-sm text-green-700 font-medium">Connected: {authUser.email}</span>
+                         <button onClick={() => { 
+                             const c = getSupabaseClient(cloudConfig); 
+                             if(c) c.auth.signOut().then(() => setAuthUser(null)); 
+                         }} className="text-xs text-red-500">Logout</button>
+                     </div>
+                 )}
             </div>
           </section>
         </div>
