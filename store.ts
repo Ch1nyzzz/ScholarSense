@@ -1,5 +1,4 @@
 
-
 import { create } from 'zustand';
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import { Paper, PaperStatus, PaperAnalysis, ViewMode, Language, Collection, FilterState, CloudConfig, AiConfig, AiProvider } from './types';
@@ -142,24 +141,47 @@ export const useStore = create<AppState>()(
 
           set({ isSyncing: true, cloudSyncError: null });
           try {
-              const cloudPapers = await fetchPapersFromCloud(state.cloudConfig);
-              if (cloudPapers && cloudPapers.length > 0) {
-                  const mergedPapers = cloudPapers.map(cp => {
-                      const local = state.papers.find(p => p.id === cp.id);
-                      return { 
-                          ...cp, 
-                          pdfData: local?.pdfData, 
-                          status: local?.status === PaperStatus.ANALYZING ? PaperStatus.ANALYZING : cp.status 
-                      };
-                  });
-                  
-                  const cloudIds = new Set(cloudPapers.map(p => p.id));
-                  const unsyncedLocals = state.papers.filter(p => !cloudIds.has(p.id));
-                  
-                  set({ papers: [...mergedPapers, ...unsyncedLocals], lastCloudSync: Date.now(), cloudSyncError: null });
-              } else {
-                  set({ lastCloudSync: Date.now(), cloudSyncError: null });
+              // 1. Fetch current cloud state
+              let cloudPapers = await fetchPapersFromCloud(state.cloudConfig);
+              const cloudIdSet = new Set(cloudPapers.map(p => p.id));
+
+              // 2. Find local papers that need to be uploaded
+              const unsyncedLocals = state.papers.filter(p => !cloudIdSet.has(p.id));
+
+              if (unsyncedLocals.length > 0) {
+                  // 3. Upload them to cloud
+                  console.log(`Syncing ${unsyncedLocals.length} local papers to cloud...`);
+                  await Promise.all(unsyncedLocals.map(p => 
+                      savePaperToCloud(state.cloudConfig, p).catch(err => {
+                          console.warn(`Failed to sync local paper ${p.id} to cloud:`, err);
+                      })
+                  ));
+
+                  // 4. Re-fetch to get the definitive state (with correct timestamps/IDs from DB)
+                  cloudPapers = await fetchPapersFromCloud(state.cloudConfig);
               }
+
+              // 5. Merge Cloud Data with Local Cache
+              // We trust Cloud as the source of truth for existence, but preserve Local pdfData
+              const finalCloudIds = new Set(cloudPapers.map(p => p.id));
+              
+              const mergedPapers = cloudPapers.map(cp => {
+                  const local = state.papers.find(p => p.id === cp.id);
+                  return {
+                      ...cp,
+                      pdfData: local?.pdfData || cp.pdfData, // Keep local PDF data if available
+                      status: local?.status === PaperStatus.ANALYZING ? PaperStatus.ANALYZING : cp.status
+                  };
+              });
+
+              // Keep locals that failed to sync or are still strictly local for some reason
+              const remainingLocals = state.papers.filter(p => !finalCloudIds.has(p.id));
+
+              set({ 
+                  papers: [...mergedPapers, ...remainingLocals], 
+                  lastCloudSync: Date.now(), 
+                  cloudSyncError: null 
+              });
           } catch (error: any) {
               console.error("Cloud sync failed", error);
               set({ cloudSyncError: error.message || "Unknown sync error" });

@@ -66,6 +66,13 @@ export const PaperList: React.FC = () => {
       }
   };
 
+  const handleDelete = (e: React.MouseEvent, paperId: string) => {
+      e.stopPropagation();
+      if (window.confirm(t.confirmDeleteMessage)) {
+          deletePaper(paperId);
+      }
+  };
+
   // Drag and Drop Handlers
   const handleDragOver = (e: React.DragEvent, paperId: string) => {
       e.preventDefault(); // Necessary to allow dropping
@@ -245,7 +252,7 @@ export const PaperList: React.FC = () => {
                        </div>
 
                        <button 
-                        onClick={(e) => { e.stopPropagation(); deletePaper(paper.id); }}
+                        onClick={(e) => handleDelete(e, paper.id)}
                         className="p-2 rounded-md hover:bg-red-50 text-gray-400 hover:text-red-500"
                         title="Delete"
                        >

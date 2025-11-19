@@ -13,7 +13,7 @@
     "@supabase/supabase-js": "^2.39.7",
     "idb-keyval": "^6.2.1",
     "lucide-react": "^0.344.0",
-    "pdfjs-dist": "4.0.379",
+    "pdfjs-dist": "5.4.394",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^9.0.1",

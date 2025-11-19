@@ -67,7 +67,10 @@ export const translations = {
     clickToView: "Click to view in new tab",
     markdownSupport: "Markdown supported",
     autoSaving: "Auto-saving",
-    aiAnalysis: "AI Analysis"
+    aiAnalysis: "AI Analysis",
+    // Delete Confirmation
+    confirmDeleteTitle: "Delete Paper?",
+    confirmDeleteMessage: "Are you sure you want to delete this paper? This will remove it from your local library and the cloud (if synced)."
   },
   zh: {
     // Sidebar
@@ -136,6 +139,9 @@ export const translations = {
     clickToView: "点击在新标签页查看",
     markdownSupport: "支持 Markdown",
     autoSaving: "自动保存",
-    aiAnalysis: "AI 深度分析"
+    aiAnalysis: "AI 深度分析",
+    // Delete Confirmation
+    confirmDeleteTitle: "删除文献？",
+    confirmDeleteMessage: "您确定要删除这篇文献吗？这将同时删除本地和云端（如果已同步）的数据。"
   }
 };

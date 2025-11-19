@@ -170,6 +170,8 @@ export const SettingsModal: React.FC = () => {
              const { data, error } = await client.auth.signInWithPassword({ email: authEmail, password: authPassword });
              if (error) throw error;
              setAuthUser(data.user);
+             // Trigger immediate sync after login to push local papers to cloud
+             refreshLibrary();
          }
      } catch (e: any) {
          alert(e.message);
@@ -416,10 +418,13 @@ create table papers (
 alter table papers enable row level security;
 insert into storage.buckets (id, name, public) values ('papers', 'papers', false);
 
--- Policies
+-- Policies (DB)
 create policy "Users can manage their own papers" on papers for all using (auth.uid() = user_id);
+
+-- Policies (Storage) - Must include SELECT, INSERT, and DELETE
 create policy "Users can upload pdfs" on storage.objects for insert with check ( bucket_id = 'papers' and auth.uid()::text = (storage.foldername(name))[1] );
-create policy "Users can view pdfs" on storage.objects for select using ( bucket_id = 'papers' and auth.uid()::text = (storage.foldername(name))[1] );`}</pre>
+create policy "Users can view pdfs" on storage.objects for select using ( bucket_id = 'papers' and auth.uid()::text = (storage.foldername(name))[1] );
+create policy "Users can delete pdfs" on storage.objects for delete using ( bucket_id = 'papers' and auth.uid()::text = (storage.foldername(name))[1] );`}</pre>
                     </div>
                 )}
             </div>
