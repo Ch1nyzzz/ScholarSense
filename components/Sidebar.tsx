@@ -1,7 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Book, Star, Archive, Settings, Key, Languages, Folder, Plus, Tag, Hash } from 'lucide-react';
+import { Book, Star, Archive, Settings, Key, Languages, Folder, Plus, Tag, Hash, GripVertical } from 'lucide-react';
 import { useStore } from '../store';
+import { translations } from '../i18n';
 
 export const Sidebar: React.FC = () => {
   const { 
@@ -16,6 +17,15 @@ export const Sidebar: React.FC = () => {
     setFilter,
     createCollection,
   } = useStore();
+
+  const t = translations[language];
+
+  const PRESET_TAGS = [
+    { label: t.tagReadLater, color: 'bg-blue-500' },
+    { label: t.tagInProgress, color: 'bg-amber-500' },
+    { label: t.tagDone, color: 'bg-green-500' },
+    { label: t.tagDeepRead, color: 'bg-purple-500' },
+  ];
 
   const [isCreating, setIsCreating] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
@@ -60,6 +70,11 @@ export const Sidebar: React.FC = () => {
     }
   };
 
+  const handleDragStart = (e: React.DragEvent, tag: string) => {
+      e.dataTransfer.setData("scholar-tag", tag);
+      e.dataTransfer.effectAllowed = "copy";
+  };
+
   // Get unique tags
   const allTags: string[] = Array.from(new Set(papers.flatMap(p => p.tags || []) as string[])).sort();
 
@@ -75,7 +90,7 @@ export const Sidebar: React.FC = () => {
       <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">
         {/* Library Section */}
         <div className="px-3 py-2 text-xs font-semibold text-apple-text uppercase tracking-wider">
-          Library
+          {t.library}
         </div>
         
         <button 
@@ -83,7 +98,7 @@ export const Sidebar: React.FC = () => {
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeFilter.type === 'all' && !activePaperId ? 'bg-gray-100 text-apple-dark' : 'text-apple-text hover:bg-gray-50'}`}
         >
           <Book className="w-4 h-4" />
-          All Papers
+          {t.allPapers}
           <span className="ml-auto text-xs bg-gray-200 px-2 py-0.5 rounded-full text-gray-600">{papers.length}</span>
         </button>
 
@@ -92,7 +107,7 @@ export const Sidebar: React.FC = () => {
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeFilter.type === 'favorites' ? 'bg-gray-100 text-apple-dark' : 'text-apple-text hover:bg-gray-50'}`}
         >
           <Star className="w-4 h-4" />
-          Favorites
+          {t.favorites}
           {favoriteCount > 0 && (
              <span className="ml-auto text-xs bg-gray-200 px-2 py-0.5 rounded-full text-gray-600">{favoriteCount}</span>
           )}
@@ -103,12 +118,12 @@ export const Sidebar: React.FC = () => {
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeFilter.type === 'archived' ? 'bg-gray-100 text-apple-dark' : 'text-apple-text hover:bg-gray-50'}`}
         >
           <Archive className="w-4 h-4" />
-          Archived
+          {t.archived}
         </button>
 
         {/* Collections Section */}
         <div className="mt-6 px-3 py-2 text-xs font-semibold text-apple-text uppercase tracking-wider flex justify-between items-center group">
-          <span>Collections</span>
+          <span>{t.collections}</span>
           <button 
             onClick={startCreating} 
             className="hover:bg-gray-200 rounded-md p-1 transition-colors"
@@ -125,7 +140,7 @@ export const Sidebar: React.FC = () => {
                 ref={inputRef}
                 type="text"
                 className="w-full px-3 py-1.5 text-sm border border-apple-blue rounded-lg shadow-sm outline-none focus:ring-2 focus:ring-blue-100 bg-white"
-                placeholder="Name..."
+                placeholder={t.createCollectionPlaceholder}
                 value={newCollectionName}
                 onChange={(e) => setNewCollectionName(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -149,13 +164,31 @@ export const Sidebar: React.FC = () => {
            </div>
         ))}
         {collections.length === 0 && !isCreating && (
-            <div className="px-3 py-2 text-xs text-gray-400 italic">No collections yet</div>
+            <div className="px-3 py-2 text-xs text-gray-400 italic">{t.noCollections}</div>
         )}
 
-
-        {/* Tags Section */}
+        {/* Quick Drag Section (New Design) */}
         <div className="mt-6 px-3 py-2 text-xs font-semibold text-apple-text uppercase tracking-wider">
-          Tags
+            {t.quickDrag}
+        </div>
+        <div className="px-3 space-y-1 mb-4">
+            {PRESET_TAGS.map(tag => (
+                <div
+                    key={tag.label}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, tag.label)}
+                    className="group flex items-center gap-3 px-2 py-1.5 rounded-md hover:bg-gray-100 cursor-move transition-colors select-none"
+                >
+                    <div className={`w-2.5 h-2.5 rounded-full ${tag.color} ring-1 ring-offset-1 ring-transparent group-hover:ring-gray-200 transition-all`} />
+                    <span className="text-sm text-gray-600 group-hover:text-apple-dark font-medium">{tag.label}</span>
+                    <GripVertical className="w-3 h-3 text-gray-300 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+            ))}
+        </div>
+
+        {/* All Tags Section */}
+        <div className="px-3 py-2 text-xs font-semibold text-apple-text uppercase tracking-wider">
+          {t.allTags}
         </div>
         <div className="px-3 space-y-1">
             {allTags.map(tag => (
@@ -172,7 +205,7 @@ export const Sidebar: React.FC = () => {
                 </button>
             ))}
             {allTags.length === 0 && (
-                <div className="text-xs text-gray-400 italic py-1">Analysis generates tags...</div>
+                <div className="text-xs text-gray-400 italic py-1">{t.noTags}</div>
             )}
         </div>
       </nav>
@@ -184,7 +217,7 @@ export const Sidebar: React.FC = () => {
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-apple-text hover:bg-white transition-colors border border-transparent hover:border-gray-200 hover:shadow-sm"
         >
           <Languages className="w-4 h-4" />
-          <span>Language: <span className="font-bold text-apple-dark">{language === 'en' ? 'English' : '中文'}</span></span>
+          <span>{t.languageLabel}: <span className="font-bold text-apple-dark">{language === 'en' ? 'English' : '中文'}</span></span>
         </button>
 
         {/* Settings / API Key */}
@@ -194,7 +227,7 @@ export const Sidebar: React.FC = () => {
              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors animate-pulse"
            >
              <Key className="w-4 h-4" />
-             Set API Key
+             {t.setApiKey}
            </button>
         ) : (
            <button 
@@ -202,7 +235,7 @@ export const Sidebar: React.FC = () => {
              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-apple-text hover:bg-white transition-colors border border-transparent hover:border-gray-200 hover:shadow-sm"
            >
              <Settings className="w-4 h-4" />
-             Settings
+             {t.settings}
            </button>
         )}
       </div>

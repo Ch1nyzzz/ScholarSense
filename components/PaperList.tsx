@@ -2,13 +2,30 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
 import { PaperStatus, Paper } from '../types';
-import { FileText, AlertCircle, Clock, CheckCircle2, Trash2, Star, FolderPlus, MoreVertical, Tag, Folder } from 'lucide-react';
+import { FileText, AlertCircle, Clock, CheckCircle2, Trash2, Star, FolderPlus, MoreVertical, Tag, Folder, X } from 'lucide-react';
+import { translations } from '../i18n';
 
 export const PaperList: React.FC = () => {
-  const { papers, openPaper, deletePaper, toggleFavorite, activeFilter, collections, addPaperToCollection, removePaperFromCollection, setFilter } = useStore();
+  const { 
+      papers, 
+      openPaper, 
+      deletePaper, 
+      toggleFavorite, 
+      activeFilter, 
+      collections, 
+      addPaperToCollection, 
+      removePaperFromCollection, 
+      setFilter,
+      addTagToPaper,
+      removeTagFromPaper,
+      language
+  } = useStore();
+
+  const t = translations[language];
   
   // Local state for managing the "Add to Collection" dropdown
   const [managingPaperId, setManagingPaperId] = useState<string | null>(null);
+  const [dragOverPaperId, setDragOverPaperId] = useState<string | null>(null);
 
   const filteredPapers = papers.filter(paper => {
     if (activeFilter.type === 'all') return true;
@@ -21,16 +38,24 @@ export const PaperList: React.FC = () => {
 
   const getFilterTitle = () => {
     switch(activeFilter.type) {
-        case 'favorites': return 'Favorites';
-        case 'archived': return 'Archived';
-        case 'collection': return collections.find(c => c.id === activeFilter.id)?.name || 'Collection';
+        case 'favorites': return t.favorites;
+        case 'archived': return t.archived;
+        case 'collection': return collections.find(c => c.id === activeFilter.id)?.name || t.collections;
         case 'tag': return `#${activeFilter.id}`;
-        default: return 'Inbox';
+        default: return t.allPapers; // Explicitly returns "All Papers" or "全部文献"
     }
   };
 
+  const getTagStyle = (tagName: string) => {
+    if (tagName === t.tagReadLater) return 'bg-blue-50 text-blue-700 border-blue-100';
+    if (tagName === t.tagInProgress) return 'bg-amber-50 text-amber-700 border-amber-100';
+    if (tagName === t.tagDone) return 'bg-green-50 text-green-700 border-green-100';
+    if (tagName === t.tagDeepRead) return 'bg-purple-50 text-purple-700 border-purple-100';
+    return 'bg-gray-100 text-gray-600 border-gray-200';
+  };
+
   const formatDate = (timestamp: number) => {
-    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(timestamp));
+    return new Intl.DateTimeFormat(language === 'zh' ? 'zh-CN' : 'en-US', { month: 'short', day: 'numeric' }).format(new Date(timestamp));
   };
 
   const handleCollectionToggle = (paperId: string, collectionId: string, isIncluded: boolean) => {
@@ -38,6 +63,27 @@ export const PaperList: React.FC = () => {
           removePaperFromCollection(paperId, collectionId);
       } else {
           addPaperToCollection(paperId, collectionId);
+      }
+  };
+
+  // Drag and Drop Handlers
+  const handleDragOver = (e: React.DragEvent, paperId: string) => {
+      e.preventDefault(); // Necessary to allow dropping
+      if (dragOverPaperId !== paperId) {
+          setDragOverPaperId(paperId);
+      }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+      setDragOverPaperId(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, paperId: string) => {
+      e.preventDefault();
+      setDragOverPaperId(null);
+      const tag = e.dataTransfer.getData("scholar-tag");
+      if (tag) {
+          addTagToPaper(paperId, tag);
       }
   };
 
@@ -50,7 +96,7 @@ export const PaperList: React.FC = () => {
              <h2 className="text-2xl font-bold text-apple-dark">{getFilterTitle()}</h2>
          </div>
          <p className="text-gray-500 text-sm">
-            {filteredPapers.length} {filteredPapers.length === 1 ? 'paper' : 'papers'} found
+            {filteredPapers.length} {filteredPapers.length === 1 ? t.paperFound : t.papersFound}
          </p>
       </header>
 
@@ -59,13 +105,13 @@ export const PaperList: React.FC = () => {
           <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <FileText className="w-8 h-8 text-gray-300" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900">No papers found</h3>
+          <h3 className="text-lg font-medium text-gray-900">{t.noPapers}</h3>
           <p className="text-gray-500 text-sm max-w-xs mx-auto mt-1">
-            {activeFilter.type === 'all' ? "Upload a PDF to get started." : "Try adjusting your filters."}
+            {activeFilter.type === 'all' ? t.uploadToStart : t.adjustFilter}
           </p>
           {activeFilter.type !== 'all' && (
               <button onClick={() => setFilter({ type: 'all' })} className="mt-4 text-apple-blue text-sm font-medium hover:underline">
-                  View All Papers
+                  {t.viewAll}
               </button>
           )}
         </div>
@@ -74,8 +120,14 @@ export const PaperList: React.FC = () => {
           {filteredPapers.map((paper) => (
             <div 
               key={paper.id}
-              className="group bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-lg hover:scale-[1.005] transition-all duration-300 cursor-pointer relative overflow-visible"
+              className={`
+                group bg-white rounded-2xl p-5 shadow-sm border transition-all duration-300 cursor-pointer relative overflow-visible
+                ${dragOverPaperId === paper.id ? 'border-apple-blue ring-2 ring-apple-blue/20 scale-[1.01]' : 'border-gray-100 hover:shadow-lg hover:scale-[1.005]'}
+              `}
               onClick={() => paper.status === PaperStatus.COMPLETED && openPaper(paper.id)}
+              onDragOver={(e) => handleDragOver(e, paper.id)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, paper.id)}
             >
               {/* Status Indicator Line */}
               <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${
@@ -94,7 +146,7 @@ export const PaperList: React.FC = () => {
 
                   {/* Authors & Meta */}
                   <div className="text-sm text-gray-500 mb-3 truncate">
-                    {paper.analysis?.authors?.join(', ') || "Unknown Author"} • Added {formatDate(paper.dateAdded)}
+                    {paper.analysis?.authors?.join(', ') || t.unknownAuthor} • {formatDate(paper.dateAdded)}
                   </div>
                   
                   {/* Tags & Collections Pills */}
@@ -108,9 +160,15 @@ export const PaperList: React.FC = () => {
                              </span>
                          );
                      })}
-                     {paper.tags?.slice(0, 3).map(tag => (
-                         <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+                     {paper.tags?.map(tag => (
+                         <span key={tag} className={`group/tag inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${getTagStyle(tag)}`}>
                              # {tag}
+                             <button 
+                                onClick={(e) => { e.stopPropagation(); removeTagFromPaper(paper.id, tag); }}
+                                className="ml-1 hover:text-red-500 opacity-0 group-hover/tag:opacity-100 transition-opacity"
+                             >
+                                 <X className="w-3 h-3" />
+                             </button>
                          </span>
                      ))}
                   </div>
@@ -125,9 +183,9 @@ export const PaperList: React.FC = () => {
                       {paper.status === PaperStatus.COMPLETED && <CheckCircle2 className="w-3 h-3" />}
                       {paper.status === PaperStatus.ANALYZING && <Clock className="w-3 h-3 animate-spin" />}
                       {paper.status === PaperStatus.ERROR && <AlertCircle className="w-3 h-3" />}
-                      {paper.status === PaperStatus.EXTRACTING ? 'Reading PDF...' : 
-                      paper.status === PaperStatus.ANALYZING ? 'AI Thinking...' :
-                      paper.status === PaperStatus.COMPLETED ? 'Analyzed' : 'Error'}
+                      {paper.status === PaperStatus.EXTRACTING ? t.readingPdf : 
+                      paper.status === PaperStatus.ANALYZING ? t.aiThinking :
+                      paper.status === PaperStatus.COMPLETED ? t.analyzed : t.error}
                     </span>
                     
                     {paper.status === PaperStatus.ERROR && (
@@ -162,9 +220,9 @@ export const PaperList: React.FC = () => {
                                    className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-2 animate-in fade-in slide-in-from-top-2"
                                    onClick={(e) => e.stopPropagation()}
                                >
-                                   <div className="text-xs font-semibold text-gray-500 uppercase px-2 py-1 mb-1">Move to...</div>
+                                   <div className="text-xs font-semibold text-gray-500 uppercase px-2 py-1 mb-1">{t.moveTo}</div>
                                    {collections.length === 0 ? (
-                                       <div className="text-sm text-gray-400 px-2 py-1 italic">No collections</div>
+                                       <div className="text-sm text-gray-400 px-2 py-1 italic">{t.noCollections}</div>
                                    ) : (
                                        collections.map(col => {
                                            const isIncluded = paper.collectionIds?.includes(col.id);
@@ -196,6 +254,15 @@ export const PaperList: React.FC = () => {
                    </div>
                 </div>
               </div>
+              
+              {/* Drag Overlay Hint */}
+              {dragOverPaperId === paper.id && (
+                 <div className="absolute inset-0 bg-apple-blue/5 rounded-2xl flex items-center justify-center pointer-events-none">
+                    <div className="bg-white px-3 py-1 rounded-full shadow-sm text-apple-blue text-xs font-bold flex items-center gap-1">
+                        <Tag className="w-3 h-3" /> {t.dropToAddTag}
+                    </div>
+                 </div>
+              )}
             </div>
           ))}
         </div>

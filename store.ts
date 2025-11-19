@@ -12,12 +12,14 @@ interface AppState {
   viewMode: ViewMode;
   activeFilter: FilterState;
   isSettingsOpen: boolean;
-  language: Language;
+  language: Language;        // UI Language
+  analysisLanguage: Language; // AI Analysis Output Language
   
   // Actions
   setApiKey: (key: string) => void;
   toggleSettings: () => void;
   setLanguage: (lang: Language) => void;
+  setAnalysisLanguage: (lang: Language) => void;
   
   // Paper Actions
   addPaper: (paper: Paper) => void;
@@ -26,6 +28,8 @@ interface AppState {
   updatePaperNotes: (id: string, notes: string) => void;
   deletePaper: (id: string) => void;
   toggleFavorite: (id: string) => void;
+  addTagToPaper: (id: string, tag: string) => void;
+  removeTagFromPaper: (id: string, tag: string) => void;
   
   // Navigation Actions
   openPaper: (id: string) => void;
@@ -50,10 +54,12 @@ export const useStore = create<AppState>()(
       activeFilter: { type: 'all' },
       isSettingsOpen: false,
       language: 'zh',
+      analysisLanguage: 'zh',
 
       setApiKey: (key) => set({ apiKey: key }),
       toggleSettings: () => set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
       setLanguage: (lang) => set({ language: lang }),
+      setAnalysisLanguage: (lang) => set({ analysisLanguage: lang }),
       
       addPaper: (paper) => set((state) => ({ 
         papers: [paper, ...state.papers] 
@@ -71,7 +77,7 @@ export const useStore = create<AppState>()(
             ...p, 
             analysis, 
             status: PaperStatus.COMPLETED,
-            tags: analysis.suggested_tags || [] // Auto-populate tags
+            tags: [...(p.tags || []), ...(analysis.suggested_tags || [])] // Merge tags instead of replace
           } : p
         )
       })),
@@ -79,6 +85,21 @@ export const useStore = create<AppState>()(
       updatePaperNotes: (id, notes) => set((state) => ({
         papers: state.papers.map((p) =>
           p.id === id ? { ...p, userNotes: notes } : p
+        )
+      })),
+
+      addTagToPaper: (id, tag) => set((state) => ({
+        papers: state.papers.map((p) => {
+          if (p.id !== id) return p;
+          const currentTags = p.tags || [];
+          if (currentTags.includes(tag)) return p;
+          return { ...p, tags: [...currentTags, tag] };
+        })
+      })),
+
+      removeTagFromPaper: (id, tag) => set((state) => ({
+        papers: state.papers.map((p) => 
+          p.id === id ? { ...p, tags: (p.tags || []).filter(t => t !== tag) } : p
         )
       })),
 
@@ -138,7 +159,8 @@ export const useStore = create<AppState>()(
         apiKey: state.apiKey, 
         papers: state.papers,
         collections: state.collections,
-        language: state.language
+        language: state.language,
+        analysisLanguage: state.analysisLanguage
       }),
     }
   )

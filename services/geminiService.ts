@@ -59,7 +59,13 @@ export const analyzePaperWithGemini = async (text: string, apiKey: string, langu
     1. **background**: What field is this? What is the background? Explain simply so a non-expert understands.
     2. **motivation**: What problem was found? Why solve it? What is the significance and purpose?
     3. **research_conclusion**: What was concluded? What method was designed? How does it relate to the motivation and solve the problem?
-    4. **methodology_math**: From symbols/representation to formulas (LaTeX) and algorithm flow. How does it differ from prior algorithms? **Ensure all math uses LaTeX format (e.g., $E=mc^2$). Do not break lines inside inline formulas.**
+    4. **methodology_math**: From symbols/representation to formulas (LaTeX) and algorithm flow. How does it differ from prior algorithms? 
+       **CRITICAL LATEX INSTRUCTIONS:**
+       - Use '$' for inline math and '$$' for block math.
+       - DO NOT use '\\(' or '\\['.
+       - You are outputting a JSON string. You MUST double-escape all LaTeX backslashes. 
+       - Example: To output "\\alpha", you must write "\\\\alpha" in the JSON.
+       - Example: To output "\\frac{a}{b}", you must write "\\\\frac{a}{b}" in the JSON.
     5. **implementation_details**: Systematically organize details (models, data, hyperparameters, prompts, etc.). Reference the appendix if needed. Aim for reproducibility.
     6. **evaluation_results**: Compare baselines. What effect was achieved? What insights were revealed?
     7. **reviewer_critique**: Act as a sharp reviewer. Critique the work. Strengths, weaknesses, and improvement directions.
@@ -68,7 +74,7 @@ export const analyzePaperWithGemini = async (text: string, apiKey: string, langu
 
     IMPORTANT: 
     - Return ONLY valid JSON matching the schema.
-    - Ensure LaTeX backslashes are correctly escaped for JSON string usage (e.g., "\\alpha").
+    - Ensure correct JSON escaping for all control characters and backslashes.
   `;
 
   try {

@@ -1,4 +1,5 @@
 
+
 export interface PaperAnalysis {
   title: string;
   authors: string[];
@@ -28,6 +29,7 @@ export interface Paper {
   status: PaperStatus;
   analysis: PaperAnalysis | null;
   rawText?: string;
+  pdfUrl?: string; // Blob URL for viewing original
   tags: string[];
   collectionIds: string[];
   userNotes: string;
