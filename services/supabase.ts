@@ -97,10 +97,14 @@ export const getPdfUrlFromStorage = async (config: CloudConfig, path: string): P
 
 export const savePaperToCloud = async (config: CloudConfig, paper: Paper) => {
     const client = getSupabaseClient(config);
-    if (!client) return;
+    if (!client) return; // If config is not enabled, we rely on local storage only.
 
     const { data: { user } } = await client.auth.getUser();
-    if (!user) return;
+    
+    // CRITICAL CHANGE: Explicitly fail if configured but not logged in
+    if (!user) {
+         throw new Error("Sync Failed: You are not logged in. Please go to Settings > Cloud Sync to login.");
+    }
 
     const dbRecord = {
         id: paper.id,

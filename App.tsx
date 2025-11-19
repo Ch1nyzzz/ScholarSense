@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { PaperList } from './components/PaperList';
 import { ReaderView } from './components/ReaderView';
@@ -9,8 +9,15 @@ import { useStore } from './store';
 import { translations } from './i18n';
 
 function App() {
-  const { viewMode, language } = useStore();
+  const { viewMode, language, cloudConfig, refreshLibrary } = useStore();
   const t = translations[language];
+
+  // Automatic Cloud Sync on App Start
+  useEffect(() => {
+    if (cloudConfig.isEnabled) {
+      refreshLibrary().catch(console.error);
+    }
+  }, [cloudConfig.isEnabled]); // Re-run if config is enabled/updated
 
   return (
     <div className="flex h-screen w-screen bg-apple-gray overflow-hidden">

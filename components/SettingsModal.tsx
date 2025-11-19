@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { X, Key, Cloud, FolderDown, Database, Info, HelpCircle, Copy, Check, Cpu, Globe, Zap, Server, Edit, Brain, Rocket } from 'lucide-react';
 import { useStore } from '../store';
@@ -313,15 +312,22 @@ export const SettingsModal: React.FC = () => {
             <div className="flex items-center justify-between mb-3">
                 <label className="text-sm font-bold text-gray-800 flex items-center gap-2">
                   <Cloud className="w-4 h-4 text-apple-blue" />
-                  {language === 'zh' ? '云端同步 (Supabase)' : 'Cloud Sync (Supabase)'}
+                  {language === 'zh' ? '云端同步 (Localhost 永久保存)' : 'Cloud Data Sync (Persistent Storage)'}
                 </label>
             </div>
-            <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+            <p className="text-xs text-gray-500 mb-4 bg-blue-50 p-2 rounded-lg border border-blue-100">
+               <Info className="w-3 h-3 inline mr-1" />
+               {language === 'zh' 
+                ? '在 Localhost 环境下，浏览器缓存清空会导致数据丢失。为了永久保存您的数据，请务必配置并登录 Supabase。' 
+                : 'In Localhost, data may be lost if browser cache is cleared. Configure and login to Supabase to ensure permanent cloud storage.'}
+            </p>
+
+            <div className="bg-white rounded-xl p-4 border border-gray-200">
                  {!authUser ? (
                      <div className="space-y-2">
                         <input 
                             className="w-full px-3 py-2 text-sm border rounded-lg" 
-                            placeholder="Supabase URL"
+                            placeholder="Supabase URL (e.g. https://xyz.supabase.co)"
                             value={inputSupabaseUrl}
                             onChange={e => setInputSupabaseUrl(e.target.value)}
                         />
@@ -349,21 +355,73 @@ export const SettingsModal: React.FC = () => {
                          </div>
                          <button 
                             onClick={() => handleAuth('login')}
-                            className="w-full bg-apple-blue text-white py-2 rounded-lg text-sm mt-2"
+                            className="w-full bg-apple-blue text-white py-2 rounded-lg text-sm mt-2 font-medium hover:bg-blue-600 transition-colors"
                             disabled={authLoading}
                          >
-                             {authLoading ? 'Loading...' : 'Login / Connect'}
+                             {authLoading ? 'Connecting...' : 'Login & Sync'}
+                         </button>
+                         <button 
+                            onClick={() => handleAuth('signup')}
+                            className="w-full bg-white text-apple-blue border border-apple-blue py-2 rounded-lg text-sm mt-1 hover:bg-blue-50 transition-colors"
+                            disabled={authLoading}
+                         >
+                             Sign Up
                          </button>
                      </div>
                  ) : (
-                     <div className="flex justify-between items-center">
-                         <span className="text-sm text-green-700 font-medium">Connected: {authUser.email}</span>
+                     <div className="flex justify-between items-center bg-green-50 p-3 rounded-lg border border-green-100">
+                         <div className="flex items-center gap-2">
+                             <span className="relative flex h-2 w-2">
+                               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                             </span>
+                             <span className="text-sm text-green-700 font-medium">Sync Active: {authUser.email}</span>
+                         </div>
                          <button onClick={() => { 
                              const c = getSupabaseClient(cloudConfig); 
                              if(c) c.auth.signOut().then(() => setAuthUser(null)); 
-                         }} className="text-xs text-red-500">Logout</button>
+                         }} className="text-xs text-red-500 hover:underline bg-white px-2 py-1 rounded border border-red-100">Logout</button>
                      </div>
                  )}
+            </div>
+            
+            {/* SQL Helper */}
+            <div className="mt-4">
+                <button 
+                    onClick={() => setShowSqlHelp(!showSqlHelp)} 
+                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
+                >
+                    <Database className="w-3 h-3" />
+                    {showSqlHelp ? (language === 'zh' ? '隐藏 SQL 配置脚本' : 'Hide Database Setup SQL') : (language === 'zh' ? '查看数据库配置 SQL' : 'View Database Setup SQL')}
+                </button>
+                
+                {showSqlHelp && (
+                    <div className="mt-2 bg-gray-800 rounded-lg p-3 text-[10px] text-gray-300 font-mono overflow-x-auto">
+                        <pre>{`-- Run this in Supabase SQL Editor
+create table papers (
+  id uuid primary key,
+  user_id uuid references auth.users not null,
+  title text,
+  original_title text,
+  source_url text,
+  storage_path text,
+  analysis jsonb,
+  tags text[],
+  status text,
+  is_favorite boolean default false,
+  user_notes text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+alter table papers enable row level security;
+insert into storage.buckets (id, name, public) values ('papers', 'papers', false);
+
+-- Policies
+create policy "Users can manage their own papers" on papers for all using (auth.uid() = user_id);
+create policy "Users can upload pdfs" on storage.objects for insert with check ( bucket_id = 'papers' and auth.uid()::text = (storage.foldername(name))[1] );
+create policy "Users can view pdfs" on storage.objects for select using ( bucket_id = 'papers' and auth.uid()::text = (storage.foldername(name))[1] );`}</pre>
+                    </div>
+                )}
             </div>
           </section>
         </div>

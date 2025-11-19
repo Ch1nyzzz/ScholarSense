@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Book, Star, Archive, Settings, Key, Languages, Folder, Plus, Tag, Hash, GripVertical, Cloud, AlertCircle } from 'lucide-react';
+import { Book, Star, Archive, Settings, Key, Languages, Folder, Plus, Tag, Hash, GripVertical, Cloud, AlertCircle, RotateCw } from 'lucide-react';
 import { useStore } from '../store';
 import { translations } from '../i18n';
 
@@ -25,7 +25,9 @@ export const Sidebar: React.FC = () => {
     setFilter,
     createCollection,
     cloudConfig,
-    cloudSyncError
+    cloudSyncError,
+    refreshLibrary,
+    isSyncing
   } = useStore();
 
   const t = translations[language];
@@ -86,6 +88,11 @@ export const Sidebar: React.FC = () => {
   const handleDragStart = (e: React.DragEvent, tag: string) => {
       e.dataTransfer.setData("scholar-tag", tag);
       e.dataTransfer.effectAllowed = "copy";
+  };
+
+  const handleManualSync = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      refreshLibrary();
   };
 
   // Get unique tags
@@ -233,35 +240,40 @@ export const Sidebar: React.FC = () => {
           <span>{t.languageLabel}: <span className="font-bold text-apple-dark">{language === 'en' ? 'English' : '中文'}</span></span>
         </button>
 
-        {/* Settings / Sync Status */}
-        <button 
-            onClick={toggleSettings}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-apple-text hover:bg-white transition-colors border border-transparent hover:border-gray-200 hover:shadow-sm"
-        >
-            <Settings className={`w-4 h-4 ${!hasActiveKey ? 'text-amber-500' : ''}`} />
-            
-            <span className="flex-1 text-left">
-                {t.settings}
-            </span>
+        {/* Settings & Sync Controls */}
+        <div className="flex items-center gap-2">
+            <button 
+                onClick={toggleSettings}
+                className="flex-1 flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-apple-text hover:bg-white transition-colors border border-transparent hover:border-gray-200 hover:shadow-sm"
+            >
+                <Settings className={`w-4 h-4 ${!hasActiveKey ? 'text-amber-500' : ''}`} />
+                <span className="truncate">{t.settings}</span>
+            </button>
 
-            {cloudConfig.isEnabled ? (
-                <span className="flex h-2 w-2 relative">
-                  {cloudSyncError ? (
-                     <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                  ) : (
-                     <>
-                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                       <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                     </>
-                  )}
-                </span>
-            ) : !hasActiveKey && (
-                <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                </span>
+            {/* Sync Status/Trigger Button */}
+            {cloudConfig.isEnabled && (
+                <button 
+                    onClick={handleManualSync}
+                    disabled={isSyncing}
+                    title={language === 'zh' ? "点击手动同步" : "Click to Sync"}
+                    className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-white transition-colors border border-transparent hover:border-gray-200 hover:shadow-sm text-apple-text"
+                >
+                    {isSyncing ? (
+                        <RotateCw className="w-4 h-4 animate-spin text-apple-blue" />
+                    ) : cloudSyncError ? (
+                        <div className="relative">
+                             <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></div>
+                             <Cloud className="w-4 h-4 text-red-500" />
+                        </div>
+                    ) : (
+                        <div className="relative">
+                             <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full border border-white"></div>
+                             <Cloud className="w-4 h-4 text-green-600" />
+                        </div>
+                    )}
+                </button>
             )}
-        </button>
+        </div>
       </div>
     </div>
   );
