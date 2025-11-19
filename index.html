@@ -8,10 +8,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>ScholarSense</title>
     <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Tailwind CSS (CDN for simplicity, kept as per original design) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- KaTeX CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
     
-    <!-- Import Inter (Modern/Clean) and Noto Sans SC (Chinese) and JetBrains Mono (Code) -->
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -29,7 +33,6 @@
               }
             },
             fontFamily: {
-              // Modern AI stack: Inter + Noto Sans SC
               sans: ['Inter', 'Noto Sans SC', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
               mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
             }
@@ -38,7 +41,6 @@
       }
     </script>
     <style>
-      /* Custom scrollbar for a cleaner look */
       ::-webkit-scrollbar {
         width: 8px;
       }
@@ -53,29 +55,33 @@
         background-color: rgba(0, 0, 0, 0.2);
       }
     </style>
-  <script type="importmap">
+<script type="importmap">
 {
   "imports": {
-    "zustand/": "https://aistudiocdn.com/zustand@^5.0.8/",
-    "zustand": "https://aistudiocdn.com/zustand@^5.0.8",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "react": "https://aistudiocdn.com/react@^19.2.0",
-    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "idb-keyval": "https://aistudiocdn.com/idb-keyval@^6.2.2",
+    "vite": "https://aistudiocdn.com/vite@^7.2.2",
+    "zustand/": "https://aistudiocdn.com/zustand@^5.0.8/",
+    "zustand": "https://aistudiocdn.com/zustand@^5.0.8",
     "pdfjs-dist": "https://aistudiocdn.com/pdfjs-dist@^5.4.394",
+    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.83.0",
     "react-markdown": "https://aistudiocdn.com/react-markdown@^10.1.0",
     "rehype-katex": "https://aistudiocdn.com/rehype-katex@^7.0.1",
-    "remark-math": "https://aistudiocdn.com/remark-math@^6.0.0",
-    "idb-keyval": "https://unpkg.com/idb-keyval@6.2.1/dist/index.js",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.7"
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "remark-math": "https://aistudiocdn.com/remark-math@^6.0.0"
   }
 }
 </script>
 </head>
   <body class="bg-apple-gray text-apple-dark antialiased overflow-hidden tracking-tight font-sans">
     <div id="root"></div>
+    <!-- Vite Entry Point -->
+    <script type="module" src="/index.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
