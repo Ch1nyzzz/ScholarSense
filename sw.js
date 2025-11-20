@@ -1,4 +1,4 @@
-const CACHE_NAME = 'scholarsense-v1';
+const CACHE_NAME = 'oneglance-v1';
 const urlsToCache = [
   '/',
   '/index.html',

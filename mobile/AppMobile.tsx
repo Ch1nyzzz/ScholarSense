@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useStore } from '../store'; // Import from shared store
 import { translations } from '../i18n'; // Import shared translations
@@ -43,7 +44,7 @@ export default function AppMobile() {
                         >
                             <Menu className="w-6 h-6 text-apple-dark" />
                         </button>
-                        <h1 className="text-xl font-bold text-apple-dark tracking-tight">ScholarSense</h1>
+                        <h1 className="text-xl font-bold text-apple-dark tracking-tight">One Glance</h1>
                     </div>
                     <div className="flex gap-2">
                         <button 

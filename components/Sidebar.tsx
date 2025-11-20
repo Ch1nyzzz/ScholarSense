@@ -111,7 +111,7 @@ export const Sidebar: React.FC = () => {
         <div className="flex items-center justify-center">
             <Logo />
         </div>
-        <h1 className="font-bold text-lg tracking-tight text-apple-dark">ScholarSense</h1>
+        <h1 className="font-bold text-lg tracking-tight text-apple-dark">One Glance</h1>
       </div>
 
       <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">

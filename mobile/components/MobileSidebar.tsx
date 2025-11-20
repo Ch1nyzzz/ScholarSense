@@ -54,7 +54,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({ isOpen, onClose })
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 w-[85vw] max-w-[300px] bg-apple-gray z-50 shadow-2xl transform transition-transform duration-300 ease-out flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="p-6 flex items-center justify-between border-b border-gray-100 bg-white/50 backdrop-blur-xl sticky top-0 shrink-0">
-            <h2 className="text-xl font-bold text-apple-dark">ScholarSense</h2>
+            <h2 className="text-xl font-bold text-apple-dark">One Glance</h2>
             <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200">
                <X className="w-6 h-6 text-gray-500" />
             </button>

@@ -1,8 +1,8 @@
 
-# ScholarSense 📚
+# One Glance 📚
 
 **AI-Native Paper OS** for Researchers.  
-**ScholarSense** 是一款专为研究人员打造的原生 AI 文献阅读与管理工具。它深度集成了全球主流的大模型服务，能够自动提取文献核心洞察、解析复杂的数学公式、进行深度方法论分析，并提供现代化的知识管理体验。
+**One Glance** 是一款专为研究人员打造的原生 AI 文献阅读与管理工具。它深度集成了全球主流的大模型服务，能够自动提取文献核心洞察、解析复杂的数学公式、进行深度方法论分析，并提供现代化的知识管理体验。
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![React](https://img.shields.io/badge/React-18-blue)
@@ -32,8 +32,8 @@
 
 ### 1. 克隆项目
 ```bash
-git clone https://github.com/your-username/scholarsense.git
-cd scholarsense
+git clone https://github.com/your-username/one-glance.git
+cd one-glance
 ```
 
 ### 2. 安装依赖
@@ -59,7 +59,7 @@ npm run dev
 
 1.  将代码 Push 到您的 GitHub 仓库。
 2.  登录 [Vercel](https://vercel.com/)，点击 "Add New Project"。
-3.  选择您的 `scholarsense` 仓库。
+3.  选择您的 `one-glance` 仓库。
 4.  **Build Settings** 保持默认即可：
     *   **Framework Preset**: Vite
     *   **Build Command**: `npm run build`
@@ -70,7 +70,7 @@ npm run dev
 
 ## ⚙️ 配置指南 (Configuration)
 
-ScholarSense 是一个**无后端 (Client-side Only)** 或 **自带后端 (BYOB)** 的应用。**您不需要在 `.env` 文件中配置 API Key**，所有配置均在应用的设置界面中完成，Key 仅存储在您浏览器的本地存储 (LocalStorage) 中。
+One Glance 是一个**无后端 (Client-side Only)** 或 **自带后端 (BYOB)** 的应用。**您不需要在 `.env` 文件中配置 API Key**，所有配置均在应用的设置界面中完成，Key 仅存储在您浏览器的本地存储 (LocalStorage) 中。
 
 ### 第一步：获取 API Key
 
@@ -141,7 +141,7 @@ on storage.objects for select
 using ( bucket_id = 'papers' and auth.uid()::text = (storage.foldername(name))[1] );
 ```
 
-4.  回到 ScholarSense 的设置界面，在 **Cloud Sync** 区域填入 URL 和 Key，并注册/登录账号即可。
+4.  回到 One Glance 的设置界面，在 **Cloud Sync** 区域填入 URL 和 Key，并注册/登录账号即可。
 
 ---
 

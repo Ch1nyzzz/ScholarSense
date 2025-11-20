@@ -102,7 +102,7 @@ export const ReaderView: React.FC = () => {
   // Chat Initialization
   const getSystemInstruction = () => {
       if (!paper?.analysis) return "";
-      return `You are ScholarSense AI, an expert research assistant. 
+      return `You are One Glance AI, an expert research assistant. 
       You are currently discussing the paper titled "${paper.analysis.title}".
       
       Here is the structured analysis of the paper:
@@ -207,7 +207,7 @@ export const ReaderView: React.FC = () => {
   const { analysis } = paper;
 
   const handleShare = () => {
-    const text = `${analysis.title}\n\n${analysis.research_conclusion}\n\nAnalyzed by ScholarSense`;
+    const text = `${analysis.title}\n\n${analysis.research_conclusion}\n\nAnalyzed by One Glance`;
     navigator.clipboard.writeText(text).then(() => {
         alert(t.copied);
     });
@@ -443,7 +443,7 @@ export const ReaderView: React.FC = () => {
                         </div>
                         <div>
                             <h3 className="font-bold text-gray-900 text-sm">{t.aiAssistant}</h3>
-                            <p className="text-[10px] text-gray-500">ScholarSense AI</p>
+                            <p className="text-[10px] text-gray-500">One Glance AI</p>
                         </div>
                     </div>
                     <button onClick={() => setActiveSidePanel('none')} className="p-1.5 hover:bg-gray-100 rounded-full transition-colors">

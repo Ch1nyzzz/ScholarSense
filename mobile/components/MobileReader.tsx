@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -64,7 +65,7 @@ const MobileChatOverlay: React.FC<{
 
     const getSystemInstruction = () => {
         if (!paper?.analysis) return "";
-        return `You are ScholarSense AI, an expert research assistant. 
+        return `You are One Glance AI, an expert research assistant. 
         You are discussing the paper titled "${paper.analysis.title}".
         Here is the structured analysis: ${JSON.stringify(paper.analysis)}.
         Answer concisely and use Markdown.`;
@@ -155,7 +156,7 @@ const MobileChatOverlay: React.FC<{
                         </div>
                         <div>
                             <h3 className="font-bold text-gray-900 text-base">{t.aiAssistant}</h3>
-                            <p className="text-xs text-gray-500 font-medium">ScholarSense AI</p>
+                            <p className="text-xs text-gray-500 font-medium">One Glance AI</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
@@ -221,7 +222,7 @@ const MobileChatOverlay: React.FC<{
                                 className="w-full bg-transparent outline-none text-[15px] text-gray-900 placeholder-gray-500 resize-none max-h-32 align-middle"
                                 rows={1}
                                 style={{ minHeight: '24px' }}
-                                placeholder="Message ScholarSense..."
+                                placeholder="Message One Glance..."
                                 value={chatInput}
                                 onChange={(e) => setChatInput(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
