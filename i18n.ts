@@ -1,4 +1,5 @@
 
+
 export const translations = {
   en: {
     // Sidebar
@@ -59,6 +60,10 @@ export const translations = {
     hidePdf: "Hide PDF",
     openNewTab: "Open in New Tab",
     notes: "Notes",
+    chat: "AI Chat",
+    askQuestion: "Ask a question about this paper...",
+    aiAssistant: "Scholar AI",
+    chatPlaceholder: "Ask about methodology, results, or details...",
     copySummary: "Copy Summary",
     copied: "Summary copied to clipboard",
     pdfUnavailable: "PDF Preview Unavailable",
@@ -131,6 +136,10 @@ export const translations = {
     hidePdf: "隐藏 PDF",
     openNewTab: "新标签页打开",
     notes: "笔记",
+    chat: "AI 对话",
+    askQuestion: "关于这篇论文...",
+    aiAssistant: "学术助手",
+    chatPlaceholder: "询问关于方法论、实验结果或具体细节...",
     copySummary: "复制摘要",
     copied: "摘要已复制",
     pdfUnavailable: "PDF 预览不可用",

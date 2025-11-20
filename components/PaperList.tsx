@@ -18,7 +18,8 @@ export const PaperList: React.FC = () => {
       setFilter,
       addTagToPaper,
       removeTagFromPaper,
-      language
+      language,
+      draggingTag // Use global dragging state
   } = useStore();
 
   const t = translations[language];
@@ -52,6 +53,14 @@ export const PaperList: React.FC = () => {
     if (tagName === t.tagDone) return 'bg-green-50 text-green-700 border-green-100';
     if (tagName === t.tagDeepRead) return 'bg-purple-50 text-purple-700 border-purple-100';
     return 'bg-gray-100 text-gray-600 border-gray-200';
+  };
+
+  const getTagColorHex = (tagName: string) => {
+      if (tagName === t.tagReadLater) return '#3B82F6'; // Blue 500
+      if (tagName === t.tagInProgress) return '#F59E0B'; // Amber 500
+      if (tagName === t.tagDone) return '#22C55E'; // Green 500
+      if (tagName === t.tagDeepRead) return '#A855F7'; // Purple 500
+      return null;
   };
 
   const formatDate = (timestamp: number) => {
@@ -92,6 +101,41 @@ export const PaperList: React.FC = () => {
       if (tag) {
           addTagToPaper(paperId, tag);
       }
+  };
+
+  // Render logic for the left status bar
+  const renderStatusBar = (paper: Paper) => {
+      // 1. Determine Base Colors from existing tags
+      const paperTags = paper.tags || [];
+      let activeColors = paperTags.map(getTagColorHex).filter(c => c !== null) as string[];
+
+      // 2. If dragging over THIS paper, add the dragging tag color temporarily
+      if (dragOverPaperId === paper.id && draggingTag) {
+          const dragColor = getTagColorHex(draggingTag);
+          if (dragColor && !activeColors.includes(dragColor)) {
+              activeColors.push(dragColor);
+          }
+      }
+
+      // 3. Construct Style
+      const style: React.CSSProperties = {};
+      let className = "absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl transition-all duration-300 ";
+
+      if (activeColors.length > 0) {
+          // Use Gradient if multiple, or single color
+          if (activeColors.length === 1) {
+              style.backgroundColor = activeColors[0];
+          } else {
+              style.background = `linear-gradient(to bottom, ${activeColors.join(', ')})`;
+          }
+      } else {
+          // Fallback to Status Color
+          if (paper.status === PaperStatus.COMPLETED) className += "bg-apple-blue";
+          else if (paper.status === PaperStatus.ERROR) className += "bg-red-500";
+          else className += "bg-amber-400 animate-pulse";
+      }
+
+      return <div className={className} style={style} />;
   };
 
   return (
@@ -136,11 +180,8 @@ export const PaperList: React.FC = () => {
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, paper.id)}
             >
-              {/* Status Indicator Line */}
-              <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl ${
-                  paper.status === PaperStatus.COMPLETED ? 'bg-apple-blue' : 
-                  paper.status === PaperStatus.ERROR ? 'bg-red-500' : 'bg-amber-400 animate-pulse'
-              }`} />
+              {/* Dynamic Status/Tag Bar */}
+              {renderStatusBar(paper)}
 
               <div className="flex items-start justify-between pl-3">
                 <div className="flex-1 min-w-0 pr-4">
@@ -264,7 +305,7 @@ export const PaperList: React.FC = () => {
               
               {/* Drag Overlay Hint */}
               {dragOverPaperId === paper.id && (
-                 <div className="absolute inset-0 bg-apple-blue/5 rounded-2xl flex items-center justify-center pointer-events-none">
+                 <div className="absolute inset-0 bg-apple-blue/5 rounded-2xl flex items-center justify-center pointer-events-none z-10">
                     <div className="bg-white px-3 py-1 rounded-full shadow-sm text-apple-blue text-xs font-bold flex items-center gap-1">
                         <Tag className="w-3 h-3" /> {t.dropToAddTag}
                     </div>

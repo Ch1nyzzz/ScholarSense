@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback } from 'react';
 import { UploadCloud, Loader2, FileText, Layers, Link as LinkIcon } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -197,10 +198,7 @@ export const FileUpload: React.FC = () => {
              {/* Model Badge */}
              <div className="hidden sm:flex px-2 py-1 bg-gray-100 rounded-md text-xs font-medium text-gray-500 items-center gap-1">
                 <Layers className="w-3 h-3" />
-                {aiConfig.activeProvider === 'gemini' && 'Gemini'}
-                {aiConfig.activeProvider === 'openai' && 'OpenAI'}
-                {aiConfig.activeProvider === 'kimi' && 'Kimi'}
-                {aiConfig.activeProvider === 'zhipu' && 'ChatGLM'}
+                <span className="uppercase">{aiConfig.activeProvider}</span>
                 <span className="opacity-50">|</span>
                 <span className="truncate max-w-[80px]">{aiConfig.activeModel}</span>
              </div>

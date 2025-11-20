@@ -1,6 +1,7 @@
 
+
 import React, { useState, useEffect } from 'react';
-import { X, Key, Cloud, FolderDown, Database, Info, HelpCircle, Copy, Check, Cpu, Globe, Zap, Server, Edit, Brain, Rocket, ChevronDown, ChevronUp, LogIn, UserPlus } from 'lucide-react';
+import { X, Key, Cloud, FolderDown, Database, Info, HelpCircle, Copy, Check, Cpu, Globe, Zap, Rocket, Server, Edit, Brain, ChevronDown, ChevronUp, LogIn, UserPlus, Bot, Sparkles, Code, Command } from 'lucide-react';
 import { useStore } from '../store';
 import { translations } from '../i18n';
 import { getSupabaseClient } from '../services/supabase';
@@ -193,7 +194,7 @@ export const SettingsModal: React.FC = () => {
   const renderProviderTab = (id: AiProvider, name: string, icon: React.ReactNode) => (
     <button
         onClick={() => setActiveTab(id)}
-        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all border whitespace-nowrap ${
             activeTab === id 
             ? 'bg-apple-dark text-white border-apple-dark shadow-md' 
             : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
@@ -203,10 +204,37 @@ export const SettingsModal: React.FC = () => {
         {name}
     </button>
   );
+  
+  const getProviderLink = (provider: AiProvider) => {
+      switch(provider) {
+          case 'gemini': return "https://aistudio.google.com/app/apikey";
+          case 'siliconflow': return "https://cloud.siliconflow.cn/";
+          case 'minimax': return "https://platform.minimax.io";
+          case 'moonshot': return "https://platform.moonshot.ai";
+          case 'zhipu': return "https://bigmodel.cn";
+          case 'deepseek': return "https://platform.deepseek.com";
+          case 'qwen': return "https://qwen.ai";
+          case 'openai': return "https://platform.openai.com/";
+          default: return "";
+      }
+  };
+
+  const getDefaultBaseUrl = (provider: AiProvider) => {
+       switch(provider) {
+          case 'siliconflow': return 'https://api.siliconflow.cn/v1';
+          case 'minimax': return 'https://api.minimax.io/v1';
+          case 'moonshot': return 'https://api.moonshot.ai/v1';
+          case 'zhipu': return 'https://open.bigmodel.cn/api/paas/v4';
+          case 'deepseek': return 'https://api.deepseek.com';
+          case 'qwen': return 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1';
+          case 'openai': return 'https://api.openai.com/v1';
+          default: return '';
+      }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/30 backdrop-blur-sm md:p-4 transition-all duration-300">
-      <div className="bg-white w-full h-[92vh] md:h-auto md:max-h-[85vh] md:max-w-lg rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 md:slide-in-from-bottom-4 duration-300">
+      <div className="bg-white w-full h-[92vh] md:h-auto md:max-h-[85vh] md:max-w-2xl rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 md:slide-in-from-bottom-4 duration-300">
         
         {/* Mobile Drag Handle */}
         <div className="md:hidden w-full flex justify-center pt-3 pb-1 shrink-0">
@@ -231,7 +259,12 @@ export const SettingsModal: React.FC = () => {
 
             <div className="flex flex-wrap gap-2 mb-4">
                 {renderProviderTab('gemini', 'Gemini', <Zap className="w-3 h-3" />)}
-                {renderProviderTab('siliconflow', 'SiliconCloud', <Rocket className="w-3 h-3" />)}
+                {renderProviderTab('deepseek', 'DeepSeek', <Brain className="w-3 h-3" />)}
+                {renderProviderTab('moonshot', 'Kimi/Moonshot', <Sparkles className="w-3 h-3" />)}
+                {renderProviderTab('qwen', 'Qwen (Aliyun)', <Cloud className="w-3 h-3" />)}
+                {renderProviderTab('zhipu', 'Zhipu GLM', <Bot className="w-3 h-3" />)}
+                {renderProviderTab('minimax', 'MiniMax', <Command className="w-3 h-3" />)}
+                {renderProviderTab('siliconflow', 'SiliconFlow', <Rocket className="w-3 h-3" />)}
                 {renderProviderTab('openai', 'OpenAI', <Globe className="w-3 h-3" />)}
             </div>
 
@@ -252,9 +285,7 @@ export const SettingsModal: React.FC = () => {
                         />
                     </div>
                     <p className="text-[10px] text-gray-400 mt-1 ml-1">
-                        {activeTab === 'gemini' && "Get key at aistudio.google.com"}
-                        {activeTab === 'siliconflow' && "Get key at cloud.siliconflow.cn"}
-                        {activeTab === 'openai' && "OpenAI Platform or Compatible Proxy"}
+                        Get key at: <a href={getProviderLink(activeTab)} target="_blank" rel="noreferrer" className="text-apple-blue hover:underline">{getProviderLink(activeTab)}</a>
                     </p>
                 </div>
 
@@ -286,7 +317,7 @@ export const SettingsModal: React.FC = () => {
                                     type="text" 
                                     value={customModelId}
                                     onChange={(e) => setCustomModelId(e.target.value)}
-                                    placeholder="e.g. gemini-2.0-pro-exp-02-05"
+                                    placeholder="e.g. user-custom-model-v1"
                                     className="block w-full pl-9 pr-3 py-3 border border-apple-blue rounded-xl text-base focus:ring-2 focus:ring-apple-blue outline-none bg-white shadow-sm"
                                 />
                             </div>
@@ -294,11 +325,11 @@ export const SettingsModal: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Optional Base URL for OpenAI & SiliconFlow */}
-                {(activeTab === 'openai' || activeTab === 'siliconflow') && (
+                {/* Optional Base URL */}
+                {activeTab !== 'gemini' && (
                     <div className="mt-4 pt-4 border-t border-gray-200">
                         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                            Proxy Base URL (Optional)
+                            API Base URL (Optional / Override)
                         </label>
                         <div className="relative">
                             <Server className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
@@ -312,9 +343,12 @@ export const SettingsModal: React.FC = () => {
                                     } 
                                 })}
                                 className="block w-full pl-9 pr-3 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-apple-blue outline-none bg-white"
-                                placeholder={activeTab === 'siliconflow' ? 'https://api.siliconflow.cn/v1' : 'https://api.openai.com/v1'}
+                                placeholder={getDefaultBaseUrl(activeTab)}
                             />
                         </div>
+                        <p className="text-[10px] text-gray-400 mt-1 ml-1">
+                            Default: {getDefaultBaseUrl(activeTab)}
+                        </p>
                     </div>
                 )}
             </div>

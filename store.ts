@@ -1,4 +1,5 @@
 
+
 import { create } from 'zustand';
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import { Paper, PaperStatus, PaperAnalysis, ViewMode, Language, Collection, FilterState, CloudConfig, AiConfig, AiProvider } from './types';
@@ -34,6 +35,7 @@ interface AppState {
   
   // View State
   isMobilePreview: boolean;
+  draggingTag: string | null; // Track the currently dragged tag label
 
   // Cloud State
   cloudConfig: CloudConfig;
@@ -49,6 +51,7 @@ interface AppState {
   setLanguage: (lang: Language) => void;
   setAnalysisLanguage: (lang: Language) => void;
   setMobilePreview: (isMobile: boolean) => void;
+  setDraggingTag: (tag: string | null) => void;
   
   // Cloud Actions
   setCloudConfig: (config: Partial<CloudConfig>) => void;
@@ -89,7 +92,12 @@ export const useStore = create<AppState>()(
         keys: {
             gemini: '',
             openai: '',
-            siliconflow: ''
+            siliconflow: '',
+            minimax: '',
+            moonshot: '',
+            zhipu: '',
+            deepseek: '',
+            qwen: ''
         },
         baseUrls: {}
       },
@@ -103,6 +111,7 @@ export const useStore = create<AppState>()(
       language: 'zh',
       analysisLanguage: 'zh',
       isMobilePreview: false,
+      draggingTag: null,
       
       cloudConfig: {
         supabaseUrl: '',
@@ -130,6 +139,7 @@ export const useStore = create<AppState>()(
       setLanguage: (lang) => set({ language: lang }),
       setAnalysisLanguage: (lang) => set({ analysisLanguage: lang }),
       setMobilePreview: (isMobile) => set({ isMobilePreview: isMobile }),
+      setDraggingTag: (tag) => set({ draggingTag: tag }),
 
       setCloudConfig: (config) => {
         set((state) => {
@@ -388,22 +398,35 @@ export const useStore = create<AppState>()(
       }),
       onRehydrateStorage: () => (state) => {
           // Migration logic
-          if (state && !state.aiConfig) {
-              state.setAiConfig({
-                  activeProvider: 'gemini',
-                  activeModel: 'gemini-3-pro-preview',
-                  keys: { gemini: (state as any).apiKey || '', openai: '', siliconflow: '' },
-                  baseUrls: {}
-              });
-          } else if (state && (state as any).apiKey && !state.aiConfig.keys.gemini) {
-              state.updateAiKey('gemini', (state as any).apiKey);
-          }
-          
-          // Ensure keys exist
-          if (state && state.aiConfig && !state.aiConfig.keys.siliconflow) {
-               state.setAiConfig({
-                  keys: { ...state.aiConfig.keys, siliconflow: '' }
-               });
+          if (state) {
+             // Ensure all keys exist in state even if loading from old backup
+             const defaultKeys = {
+                 gemini: '',
+                 openai: '',
+                 siliconflow: '',
+                 minimax: '',
+                 moonshot: '',
+                 zhipu: '',
+                 deepseek: '',
+                 qwen: ''
+             };
+             
+             if (!state.aiConfig) {
+                 state.setAiConfig({
+                     activeProvider: 'gemini',
+                     activeModel: 'gemini-3-pro-preview',
+                     keys: defaultKeys,
+                     baseUrls: {}
+                 });
+             } else {
+                 // Merge existing keys with default keys to ensure new providers exist
+                 state.aiConfig.keys = { ...defaultKeys, ...state.aiConfig.keys };
+                 
+                 // Legacy backup key migration
+                 if ((state as any).apiKey && !state.aiConfig.keys.gemini) {
+                     state.aiConfig.keys.gemini = (state as any).apiKey;
+                 }
+             }
           }
       }
     }

@@ -130,7 +130,8 @@ async function callOpenAICompatible(
 
     // DeepSeek and other "Thinking" models (like o1) often don't support json_object mode effectively or at all in beta.
     // We use a relaxed approach: Ask for JSON in text, then parse it.
-    const useJsonMode = !model.includes('reasoner') && !model.includes('o1') && !model.includes('R1');
+    // DeepSeek R1 (reasoner) and Kimi K2 Thinking might have similar constraints.
+    const useJsonMode = !model.includes('reasoner') && !model.includes('o1') && !model.includes('R1') && !model.includes('thinking');
 
     const body: any = {
         model: model,
@@ -182,10 +183,12 @@ export const analyzePaperWithGemini = async (text: string, config: AiConfig, lan
     if (!apiKey) throw new Error(`${activeProvider.toUpperCase()} API Key is missing. Please check settings.`);
 
     // Truncate text if excessively long (Different models have different context windows)
-    const LONG_CONTEXT_MODELS = ['gemini', 'siliconflow'];
+    // Most new models (Gemini, Kimi, GLM-4, DeepSeek, Qwen) support very long contexts (128k-1M+)
+    // We can safely increase the limit.
+    const LONG_CONTEXT_MODELS = ['gemini', 'siliconflow', 'moonshot', 'deepseek', 'minimax', 'qwen', 'zhipu'];
     const MAX_CHARS = LONG_CONTEXT_MODELS.includes(activeProvider) 
-        ? 500000  // ~125k tokens, safe for most long-context models
-        : 100000; // ~25k tokens
+        ? 800000  // ~200k tokens, safe for most 128k+ context models
+        : 100000; // ~25k tokens for generic/older
 
     const processedText = text.length > MAX_CHARS ? text.substring(0, MAX_CHARS) + "...(truncated)" : text;
 
@@ -201,6 +204,51 @@ export const analyzePaperWithGemini = async (text: string, config: AiConfig, lan
                 language, 
                 baseUrls.siliconflow || 'https://api.siliconflow.cn/v1'
             );
+
+        case 'minimax':
+             return callOpenAICompatible(
+                 processedText, 
+                 apiKey, 
+                 activeModel, 
+                 language, 
+                 baseUrls.minimax || 'https://api.minimax.io/v1'
+             );
+
+        case 'moonshot':
+             return callOpenAICompatible(
+                 processedText, 
+                 apiKey, 
+                 activeModel, 
+                 language, 
+                 baseUrls.moonshot || 'https://api.moonshot.ai/v1'
+             );
+
+        case 'zhipu':
+             return callOpenAICompatible(
+                 processedText, 
+                 apiKey, 
+                 activeModel, 
+                 language, 
+                 baseUrls.zhipu || 'https://open.bigmodel.cn/api/paas/v4'
+             );
+
+        case 'deepseek':
+             return callOpenAICompatible(
+                 processedText, 
+                 apiKey, 
+                 activeModel, 
+                 language, 
+                 baseUrls.deepseek || 'https://api.deepseek.com'
+             );
+
+        case 'qwen':
+             return callOpenAICompatible(
+                 processedText, 
+                 apiKey, 
+                 activeModel, 
+                 language, 
+                 baseUrls.qwen || 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'
+             );
 
         case 'openai':
             return callOpenAICompatible(

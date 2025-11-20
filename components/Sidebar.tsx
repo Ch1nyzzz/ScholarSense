@@ -28,7 +28,8 @@ export const Sidebar: React.FC = () => {
     cloudSyncError,
     refreshLibrary,
     isSyncing,
-    setMobilePreview
+    setMobilePreview,
+    setDraggingTag // Destructure new action
   } = useStore();
 
   const t = translations[language];
@@ -89,6 +90,11 @@ export const Sidebar: React.FC = () => {
   const handleDragStart = (e: React.DragEvent, tag: string) => {
       e.dataTransfer.setData("scholar-tag", tag);
       e.dataTransfer.effectAllowed = "copy";
+      setDraggingTag(tag); // Update global state
+  };
+
+  const handleDragEnd = () => {
+      setDraggingTag(null); // Reset global state
   };
 
   const handleManualSync = (e: React.MouseEvent) => {
@@ -198,6 +204,7 @@ export const Sidebar: React.FC = () => {
                     key={tag.label}
                     draggable
                     onDragStart={(e) => handleDragStart(e, tag.label)}
+                    onDragEnd={handleDragEnd}
                     className="group flex items-center gap-3 px-2 py-1.5 rounded-md hover:bg-gray-100 cursor-move transition-colors select-none"
                 >
                     <div className={`w-2.5 h-2.5 rounded-full ${tag.color} ring-1 ring-offset-1 ring-transparent group-hover:ring-gray-200 transition-all`} />

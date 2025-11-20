@@ -70,7 +70,7 @@ export interface CloudConfig {
 
 // --- AI Configuration Types ---
 
-export type AiProvider = 'gemini' | 'openai' | 'siliconflow';
+export type AiProvider = 'gemini' | 'openai' | 'siliconflow' | 'minimax' | 'moonshot' | 'zhipu' | 'deepseek' | 'qwen';
 
 export interface AiModelConfig {
     provider: AiProvider;
@@ -85,10 +85,20 @@ export interface AiConfig {
         gemini: string;
         openai: string;
         siliconflow: string;
+        minimax: string;
+        moonshot: string;
+        zhipu: string;
+        deepseek: string;
+        qwen: string;
     };
     baseUrls: {
-        openai?: string; // Optional custom base URL for OpenAI proxies
-        siliconflow?: string; // Optional custom base URL
+        openai?: string;
+        siliconflow?: string;
+        minimax?: string;
+        moonshot?: string;
+        zhipu?: string;
+        deepseek?: string;
+        qwen?: string;
     }
 }
 
@@ -101,19 +111,45 @@ export const AVAILABLE_MODELS: Record<AiProvider, AiModelConfig[]> = {
     ],
     openai: [
         { provider: 'openai', modelId: 'o1', name: 'GPT o1 (Reasoning)' },
-        { provider: 'openai', modelId: 'o1-preview', name: 'GPT o1 Preview' },
-        { provider: 'openai', modelId: 'o1-mini', name: 'GPT o1 Mini' },
         { provider: 'openai', modelId: 'o3-mini', name: 'GPT o3 Mini' },
         { provider: 'openai', modelId: 'gpt-4o', name: 'GPT-4o' },
         { provider: 'openai', modelId: 'gpt-4o-mini', name: 'GPT-4o Mini' },
     ],
     siliconflow: [
-        { provider: 'siliconflow', modelId: 'deepseek-ai/DeepSeek-R1', name: 'DeepSeek R1 (Thinking)' },
-        { provider: 'siliconflow', modelId: 'deepseek-ai/DeepSeek-V3', name: 'DeepSeek V3' },
+        { provider: 'siliconflow', modelId: 'deepseek-ai/DeepSeek-R1', name: 'DeepSeek R1 (SiliconFlow)' },
+        { provider: 'siliconflow', modelId: 'deepseek-ai/DeepSeek-V3', name: 'DeepSeek V3 (SiliconFlow)' },
         { provider: 'siliconflow', modelId: 'Qwen/Qwen2.5-72B-Instruct', name: 'Qwen 2.5 72B' },
-        { provider: 'siliconflow', modelId: 'THUDM/glm-4-9b-chat', name: 'Zhipu GLM-4 9B' },
-        // Including IDs for Minimax/Kimi if supported by user's SiliconFlow mapping or future support
-        { provider: 'siliconflow', modelId: 'internlm/internlm2_5-7b-chat', name: 'InternLM 2.5' },
-        { provider: 'siliconflow', modelId: '01-ai/Yi-1.5-34B-Chat', name: 'Yi 1.5 34B' },
+        { provider: 'siliconflow', modelId: 'THUDM/glm-4-9b-chat', name: 'GLM-4 9B' },
     ],
+    minimax: [
+        { provider: 'minimax', modelId: 'MiniMax-M2', name: 'MiniMax M2 (General/Agent)' },
+        { provider: 'minimax', modelId: 'MiniMax-M2-Stable', name: 'MiniMax M2 Stable' },
+        { provider: 'minimax', modelId: 'abab6.5s-chat', name: 'Abab 6.5s' },
+        { provider: 'minimax', modelId: 'abab6.5g-chat', name: 'Abab 6.5g' },
+    ],
+    moonshot: [
+        { provider: 'moonshot', modelId: 'kimi-latest', name: 'Kimi Latest' },
+        { provider: 'moonshot', modelId: 'kimi-k2-thinking', name: 'Kimi K2 Thinking' },
+        { provider: 'moonshot', modelId: 'moonshot-v1-128k', name: 'Moonshot V1 128k' },
+        { provider: 'moonshot', modelId: 'moonshot-v1-32k', name: 'Moonshot V1 32k' },
+    ],
+    zhipu: [
+        { provider: 'zhipu', modelId: 'glm-4.6', name: 'GLM-4.6 (Flagship)' },
+        { provider: 'zhipu', modelId: 'glm-4-plus', name: 'GLM-4 Plus' },
+        { provider: 'zhipu', modelId: 'glm-4-flash', name: 'GLM-4 Flash (Fast)' },
+        { provider: 'zhipu', modelId: 'glm-4-air', name: 'GLM-4 Air' },
+    ],
+    deepseek: [
+        { provider: 'deepseek', modelId: 'deepseek-reasoner', name: 'DeepSeek R1 (Reasoner)' },
+        { provider: 'deepseek', modelId: 'deepseek-chat', name: 'DeepSeek V3 (Chat)' },
+        // Official API mainly exposes these two as the primary endpoints. 
+        // Older versions are deprecated or aliased.
+        { provider: 'deepseek', modelId: 'deepseek-coder', name: 'DeepSeek Coder V2' },
+    ],
+    qwen: [
+        { provider: 'qwen', modelId: 'qwen3-max', name: 'Qwen3 Max' },
+        { provider: 'qwen', modelId: 'qwen-plus', name: 'Qwen Plus' },
+        { provider: 'qwen', modelId: 'qwen-flash', name: 'Qwen Flash' },
+        { provider: 'qwen', modelId: 'qwen3-coder-plus', name: 'Qwen3 Coder Plus' },
+    ]
 };

@@ -1,7 +1,8 @@
+
 # ScholarSense 📚
 
 **AI-Native Paper OS** for Researchers.  
-**ScholarSense** 是一款专为研究人员打造的原生 AI 文献阅读与管理工具。它深度集成了 **Google Gemini**、**DeepSeek (via SiliconFlow)** 和 **OpenAI**，能够自动提取文献核心洞察、解析复杂的数学公式、进行深度方法论分析，并提供现代化的知识管理体验。
+**ScholarSense** 是一款专为研究人员打造的原生 AI 文献阅读与管理工具。它深度集成了全球主流的大模型服务，能够自动提取文献核心洞察、解析复杂的数学公式、进行深度方法论分析，并提供现代化的知识管理体验。
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![React](https://img.shields.io/badge/React-18-blue)
@@ -11,10 +12,13 @@
 
 ## ✨ 核心特性 (Features)
 
-*   **🧠 多模型支持**: 
-    *   **Gemini Pro 3.0 / 2.0 Flash Thinking**: 谷歌最强原生多模态模型。
-    *   **DeepSeek R1 (Thinking)**: 通过硅基流动 (SiliconFlow) 支持深度思考模型。
-    *   **OpenAI o1/o3**: 支持最新的推理模型。
+*   **🧠 全能模型支持**: 
+    *   **Google Gemini**: Pro 3.0 / Flash 2.5 / 2.0 Thinking。
+    *   **DeepSeek (深度求索)**: 原生支持 V3 (Chat) 和 R1 (Reasoner)。
+    *   **Kimi / Moonshot**: 支持最新的 Kimi k2 系列和 k2-thinking。
+    *   **Qwen (通义千问)**: 支持 Qwen-Max, Qwen-Plus 等。
+    *   **Zhipu GLM (智谱)**: 支持 GLM-4.6, GLM-4-Flash 等。
+    *   **MiniMax**: 支持 MiniMax-M2 系列。
 *   **📑 深度 AI 解析**: 自动生成包含背景、动机、方法论（LaTeX 公式支持）、实验结果、审稿人视角的结构化报告。
 *   **🔗 智能网络解析**: 直接粘贴 Arxiv 链接，AI 自动联网搜索并生成报告。
 *   **☁️ 私有云同步**: 支持连接您自己的 **Supabase** 数据库，实现多设备同步，数据完全私有。
@@ -70,18 +74,23 @@ ScholarSense 是一个**无后端 (Client-side Only)** 或 **自带后端 (BYOB)
 
 ### 第一步：获取 API Key
 
-| 服务商 (Provider) | 推荐模型 | 获取地址 | 说明 |
+| 服务商 (Provider) | 推荐模型 | 获取地址 | 备注 |
 | :--- | :--- | :--- | :--- |
-| **Google Gemini** | `gemini-2.0-flash`, `gemini-1.5-pro` | [Google AI Studio](https://aistudio.google.com/app/apikey) | **免费且强大**，推荐首选。 |
-| **SiliconFlow (硅基流动)** | `deepseek-ai/DeepSeek-R1`, `Qwen2.5` | [SiliconCloud](https://cloud.siliconflow.cn/) | 国内访问速度快，支持 **DeepSeek R1** 满血版。 |
-| **OpenAI** | `gpt-4o`, `o1` | [OpenAI Platform](https://platform.openai.com/) | 行业标准，成本较高。 |
+| **Google Gemini** | `gemini-2.5-flash`, `gemini-2.0-flash-thinking` | [Google AI Studio](https://aistudio.google.com/app/apikey) | **免费且强大**，推荐首选。 |
+| **DeepSeek** | `deepseek-chat`, `deepseek-reasoner` | [DeepSeek Platform](https://platform.deepseek.com/) | 性价比极高，推理能力强。 |
+| **Kimi / Moonshot** | `kimi-latest`, `kimi-k2-thinking` | [Moonshot AI](https://platform.moonshot.ai/) | 长文本与逻辑推理优秀。 |
+| **Qwen (阿里云)** | `qwen-max`, `qwen-plus` | [Qwen / Aliyun](https://qwen.ai) | 中文理解能力顶尖。 |
+| **Zhipu GLM** | `glm-4.6`, `glm-4-flash` | [BigModel.cn](https://bigmodel.cn) | 综合能力均衡。 |
+| **MiniMax** | `MiniMax-M2` | [MiniMax Platform](https://platform.minimax.io) | 拟人化交互体验好。 |
+| **SiliconFlow** | `DeepSeek-R1`, `Qwen2.5` | [SiliconCloud](https://cloud.siliconflow.cn/) | 聚合平台，访问速度快。 |
+| **OpenAI** | `gpt-4o`, `o1` | [OpenAI Platform](https://platform.openai.com/) | 行业基准。 |
 
 ### 第二步：在应用中配置
 
 1.  打开应用，点击左下角的 **设置图标 (⚙️)**。
-2.  在 **AI Provider & Model** 区域选择您想使用的服务商（如 `SiliconCloud`）。
+2.  在 **AI Provider & Model** 区域选择您想使用的服务商（如 `DeepSeek` 或 `Kimi`）。
 3.  在 **API Key** 输入框中粘贴您的 Key。
-4.  (可选) 选择您喜欢的模型。
+4.  (可选) 选择您喜欢的模型，或者手动输入自定义模型 ID。
 5.  点击 **Save Changes**。
 
 ---

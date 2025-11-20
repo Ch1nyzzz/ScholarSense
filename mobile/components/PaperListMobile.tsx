@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../store'; // Import from root store
-import { PaperStatus } from '../../types';
+import { PaperStatus, Paper } from '../../types';
 import { Clock, AlertCircle, ChevronRight, Star, MoreVertical, Trash2, Check, X, Folder, Tag, GripVertical } from 'lucide-react';
 import { translations } from '../../i18n';
 
@@ -43,6 +43,15 @@ export const PaperListMobile: React.FC = () => {
     { label: t.tagDone, color: 'bg-green-500' },
     { label: t.tagDeepRead, color: 'bg-purple-500' },
   ];
+
+  // Helper for gradient color mapping (duplicated here to ensure self-contained mobile logic)
+  const getTagColorHex = (tagName: string) => {
+      if (tagName === t.tagReadLater) return '#3B82F6'; // Blue 500
+      if (tagName === t.tagInProgress) return '#F59E0B'; // Amber 500
+      if (tagName === t.tagDone) return '#22C55E'; // Green 500
+      if (tagName === t.tagDeepRead) return '#A855F7'; // Purple 500
+      return null;
+  };
 
   // Filter papers
   const filteredPapers = papers.filter(paper => {
@@ -93,8 +102,6 @@ export const PaperListMobile: React.FC = () => {
           setDragPos({ x, y });
           
           // Manual Hit Testing using getBoundingClientRect
-          // This is more reliable on mobile touch moves than elementFromPoint
-          // because it ignores z-index issues and the ghost element overlay.
           const paperCards = document.querySelectorAll('[data-paper-id]');
           let foundId: string | null = null;
 
@@ -149,7 +156,7 @@ export const PaperListMobile: React.FC = () => {
           window.removeEventListener('mousemove', handleWindowMouseMove);
           window.removeEventListener('mouseup', handleEnd);
       };
-  }, [isDragging, dragTag, addTagToPaper]); // Removed dragTargetId dependency
+  }, [isDragging, dragTag, addTagToPaper]); 
 
 
   // --- Standard Handlers ---
@@ -172,6 +179,41 @@ export const PaperListMobile: React.FC = () => {
   };
 
   const activePaper = activeActionPaperId ? papers.find(p => p.id === activeActionPaperId) : null;
+
+  // Render logic for the left status bar (Mobile)
+  const renderStatusBar = (paper: Paper) => {
+      // 1. Determine Base Colors from existing tags
+      const paperTags = paper.tags || [];
+      let activeColors = paperTags.map(getTagColorHex).filter(c => c !== null) as string[];
+
+      // 2. If dragging over THIS paper, add the dragged tag color temporarily
+      if (dragTargetId === paper.id && dragTag) {
+          const dragColor = getTagColorHex(dragTag.label);
+          if (dragColor && !activeColors.includes(dragColor)) {
+              activeColors.push(dragColor);
+          }
+      }
+
+      // 3. Construct Style
+      const style: React.CSSProperties = {};
+      let className = "absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl transition-all duration-200 "; // Faster transition on mobile
+
+      if (activeColors.length > 0) {
+          // Use Gradient if multiple, or single color
+          if (activeColors.length === 1) {
+              style.backgroundColor = activeColors[0];
+          } else {
+              style.background = `linear-gradient(to bottom, ${activeColors.join(', ')})`;
+          }
+      } else {
+          // Fallback to Status Color
+          if (paper.status === PaperStatus.COMPLETED) className += "bg-apple-blue";
+          else if (paper.status === PaperStatus.ERROR) className += "bg-red-500";
+          else className += "bg-amber-400 animate-pulse";
+      }
+
+      return <div className={className} style={style} />;
+  };
 
   return (
     <>
@@ -238,11 +280,8 @@ export const PaperListMobile: React.FC = () => {
                 `}
                 onClick={() => paper.status === PaperStatus.COMPLETED && openPaper(paper.id)}
                 >
-                    {/* Status Bar */}
-                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
-                        paper.status === PaperStatus.COMPLETED ? 'bg-apple-blue' : 
-                        paper.status === PaperStatus.ERROR ? 'bg-red-500' : 'bg-amber-400'
-                    }`} />
+                    {/* Dynamic Status Bar */}
+                    {renderStatusBar(paper)}
 
                     {/* Drop Overlay Hint - More prominent */}
                     {dragTargetId === paper.id && isDragging && (
