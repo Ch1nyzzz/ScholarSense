@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#F5F5F7" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>ScholarSense Mobile</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- KaTeX CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              apple: {
+                gray: '#F5F5F7',
+                dark: '#1D1D1F',
+                text: '#86868B',
+                blue: '#0066CC',
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'Noto Sans SC', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+              mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      /* Disable pull-to-refresh on mobile */
+      body {
+        overscroll-behavior-y: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      /* Hide scrollbar for clean mobile look */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .safe-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+    </style>
+    <script type="importmap">
+    {
+      "imports": {
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+        "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+        "react/": "https://aistudiocdn.com/react@^19.2.0/",
+        "react": "https://aistudiocdn.com/react@^19.2.0",
+        "idb-keyval": "https://aistudiocdn.com/idb-keyval@^6.2.2",
+        "vite": "https://aistudiocdn.com/vite@^7.2.2",
+        "zustand/": "https://aistudiocdn.com/zustand@^5.0.8/",
+        "zustand": "https://aistudiocdn.com/zustand@^5.0.8",
+        "pdfjs-dist": "https://aistudiocdn.com/pdfjs-dist@^5.4.394",
+        "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
+        "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.83.0",
+        "react-markdown": "https://aistudiocdn.com/react-markdown@^10.1.0",
+        "rehype-katex": "https://aistudiocdn.com/rehype-katex@^7.0.1",
+        "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+        "remark-math": "https://aistudiocdn.com/remark-math@^6.0.0",
+        "path": "https://aistudiocdn.com/path@^0.12.7"
+      }
+    }
+    </script>
+  </head>
+  <body class="bg-apple-gray text-apple-dark antialiased overflow-hidden tracking-tight font-sans h-[100dvh] w-screen">
+    <div id="root" class="h-full w-full"></div>
+    <script type="module" src="./index.tsx"></script>
+  </body>
+</html>

@@ -32,6 +32,9 @@ interface AppState {
   language: Language;
   analysisLanguage: Language;
   
+  // View State
+  isMobilePreview: boolean;
+
   // Cloud State
   cloudConfig: CloudConfig;
   isSyncing: boolean;
@@ -45,6 +48,7 @@ interface AppState {
   toggleSettings: () => void;
   setLanguage: (lang: Language) => void;
   setAnalysisLanguage: (lang: Language) => void;
+  setMobilePreview: (isMobile: boolean) => void;
   
   // Cloud Actions
   setCloudConfig: (config: Partial<CloudConfig>) => void;
@@ -98,6 +102,7 @@ export const useStore = create<AppState>()(
       isSettingsOpen: false,
       language: 'zh',
       analysisLanguage: 'zh',
+      isMobilePreview: false,
       
       cloudConfig: {
         supabaseUrl: '',
@@ -124,6 +129,7 @@ export const useStore = create<AppState>()(
       toggleSettings: () => set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
       setLanguage: (lang) => set({ language: lang }),
       setAnalysisLanguage: (lang) => set({ analysisLanguage: lang }),
+      setMobilePreview: (isMobile) => set({ isMobilePreview: isMobile }),
 
       setCloudConfig: (config) => {
         set((state) => {

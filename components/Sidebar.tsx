@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Book, Star, Archive, Settings, Key, Languages, Folder, Plus, Tag, Hash, GripVertical, Cloud, AlertCircle, RotateCw } from 'lucide-react';
+import { Book, Star, Archive, Settings, Key, Languages, Folder, Plus, Tag, Hash, GripVertical, Cloud, AlertCircle, RotateCw, Smartphone } from 'lucide-react';
 import { useStore } from '../store';
 import { translations } from '../i18n';
 
@@ -27,7 +27,8 @@ export const Sidebar: React.FC = () => {
     cloudConfig,
     cloudSyncError,
     refreshLibrary,
-    isSyncing
+    isSyncing,
+    setMobilePreview
   } = useStore();
 
   const t = translations[language];
@@ -274,6 +275,16 @@ export const Sidebar: React.FC = () => {
                 </button>
             )}
         </div>
+
+        {/* Mobile View Link (Changed to Button) */}
+        <button 
+            onClick={() => setMobilePreview(true)}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-apple-text hover:bg-white transition-colors border border-transparent hover:border-gray-200 hover:shadow-sm"
+            title={language === 'zh' ? '预览手机版' : 'Preview Mobile Version'}
+        >
+            <Smartphone className="w-4 h-4" />
+            <span>{language === 'zh' ? '手机版预览' : 'Mobile View'}</span>
+        </button>
       </div>
     </div>
   );

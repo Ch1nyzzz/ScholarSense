@@ -7,9 +7,10 @@ import { FileUpload } from './components/FileUpload';
 import { SettingsModal } from './components/SettingsModal';
 import { useStore } from './store';
 import { translations } from './i18n';
+import AppMobile from './mobile/AppMobile';
 
 function App() {
-  const { viewMode, language, cloudConfig, refreshLibrary } = useStore();
+  const { viewMode, language, cloudConfig, refreshLibrary, isMobilePreview, setMobilePreview } = useStore();
   const t = translations[language];
 
   // Automatic Cloud Sync on App Start
@@ -18,6 +19,25 @@ function App() {
       refreshLibrary().catch(console.error);
     }
   }, [cloudConfig.isEnabled]); // Re-run if config is enabled/updated
+
+  // Automatic Mobile Detection
+  useEffect(() => {
+    const checkMobile = () => {
+      // Check if width is less than iPad Air width or user agent indicates mobile
+      const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isSmallScreen = window.innerWidth < 768;
+      
+      if (isSmallScreen || (isMobileUserAgent && window.innerWidth < 1024)) {
+        setMobilePreview(true);
+      }
+    };
+
+    checkMobile();
+  }, [setMobilePreview]);
+
+  if (isMobilePreview) {
+    return <AppMobile />;
+  }
 
   return (
     <div className="flex h-screen w-screen bg-apple-gray overflow-hidden">
